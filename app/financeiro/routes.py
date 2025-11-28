@@ -274,16 +274,20 @@ def delete_transaction(transaction_id):
 @financeiro_bp.route('/transacoes')
 @login_required
 def transactions():
-    """Lista todas as transações do usuário, ordenadas por data."""
-    all_transactions = Transaction.query.filter_by(user_id=current_user.id) \
-                                        .filter_by(is_recurrent=False) \
-                                        .order_by(Transaction.date.desc()) \
-                                        .all()
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
 
+    pagination = Transaction.query.filter_by(user_id=current_user.id) \
+                                  .filter_by(is_recurrent=False) \
+                                  .order_by(Transaction.date.desc()) \
+                                  .paginate(page=page, per_page=per_page, error_out=False)
+
+    all_transactions = pagination.items
     form = TransactionForm()
     frequency_choices = {key: label for key, label in form.frequency.choices if key}    
 
     return render_template('financeiro/transactions.html',
                            transactions=all_transactions,
+                           pagination=pagination,
                            frequency_choices=frequency_choices,
                            title='Todas as Movimentações', **footer)

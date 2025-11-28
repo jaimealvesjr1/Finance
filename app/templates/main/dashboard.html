@@ -63,6 +63,14 @@
             </div>
         </div>
     </div>
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0 pt-4 px-4">
+            <h5 class="mb-0">Fluxo de Caixa (Semestral)</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="financeChart" height="80"></canvas>
+        </div>
+    </div>
 </div>
 
 <div class="card border-0 shadow-sm">
@@ -105,4 +113,39 @@
         {% endif %}
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    const financeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_labels | tojson }},
+            datasets: [
+                {
+                    label: 'Receitas',
+                    data: {{ chart_receitas | tojson }},
+                    backgroundColor: '#10b981',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Despesas',
+                    data: {{ chart_despesas | tojson }},
+                    backgroundColor: '#ef4444',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [2, 4] } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
 {% endblock %}

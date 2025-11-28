@@ -1,43 +1,52 @@
 {% extends "base/layout.html" %}
 
-{% block title %}Transações{% endblock %}
+{% block title %}Movimentações{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0 fw-bold">Movimentações</h2>
-    <a href="{{ url_for('financeiro.add_transaction') }}" class="btn btn-success shadow-sm">
-        <i class="bi bi-plus-lg me-1"></i> Nova
+    <div>
+        <h2 class="mb-1 fw-bold">Movimentações</h2>
+        <p class="text-muted mb-0">Histórico completo de receitas e despesas.</p>
+    </div>
+    <a href="{{ url_for('financeiro.add_transaction') }}" class="btn btn-primary shadow-sm px-4">
+        <i class="bi bi-plus-lg me-2"></i>Nova
     </a>
 </div>
 
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm rounded-4">
     <div class="card-body p-0">
         {% if transactions %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-uppercase small text-muted">
+                    <thead class="bg-light text-uppercase text-muted small">
                         <tr>
-                            <th class="ps-4 py-3">Data</th>
-                            <th>Descrição</th>
-                            <th>Carteira</th>
-                            <th>Categoria</th>
-                            <th class="text-end">Valor</th>
-                            <th class="text-center pe-4">Ações</th>
+                            <th class="ps-4 py-3 border-0">Data</th>
+                            <th class="border-0">Descrição</th>
+                            <th class="border-0">Carteira</th>
+                            <th class="border-0">Categoria</th>
+                            <th class="text-end border-0">Valor</th>
+                            <th class="text-center pe-4 border-0" style="width: 100px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for t in transactions %}
-                        <tr>
-                            <td class="ps-4 text-muted font-monospace">{{ t.date.strftime('%d/%m/%Y') }}</td>
-                            <td class="fw-medium">{{ t.description }}</td>
-                            <td><span class="badge bg-light text-dark border">{{ t.wallet.name }}</span></td>
-                            <td><span class="badge bg-light text-secondary border rounded-pill">{{ t.category.name }}</span></td>
+                        <tr class="border-bottom-light">
+                            <td class="ps-4 py-3 text-muted font-monospace">{{ t.date.strftime('%d/%m/%Y') }}</td>
+                            <td class="fw-medium text-dark">{{ t.description }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-secondary border fw-normal rounded-pill px-3">
+                                    {{ t.category.name }}
+                                </span>
+                            </td>
                             <td class="text-end fw-bold {{ 'text-success' if t.type == 'R' else 'text-danger' }}">
                                 {{ '+' if t.type == 'R' else '-' }} R$ {{ "%.2f"|format(t.amount) }}
                             </td>
                             <td class="text-center pe-4">
-                                <a href="{{ url_for('financeiro.edit_transaction', transaction_id=t.id) }}" class="btn btn-sm btn-link text-warning p-0" title="Editar">
-                                    <i class="bi bi-pencil-square fs-5"></i>
+                                <a href="{{ url_for('financeiro.edit_transaction', transaction_id=t.id) }}" class="btn btn-icon btn-sm btn-light text-muted" title="Editar">
+                                    <i class="bi bi-pencil"></i>
                                 </a>
                             </td>
                         </tr>
@@ -46,9 +55,15 @@
                 </table>
             </div>
         {% else %}
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
-                <p>Nenhuma transação encontrada.</p>
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-receipt-cutoff text-muted opacity-25" style="font-size: 4rem;"></i>
+                </div>
+                <h5 class="text-muted">Nenhuma movimentação encontrada</h5>
+                <p class="text-muted small">Comece por adicionar uma nova receita ou despesa.</p>
+                <a href="{{ url_for('financeiro.add_transaction') }}" class="btn btn-outline-primary mt-2">
+                    Adicionar Movimentação
+                </a>
             </div>
         {% endif %}
     </div>

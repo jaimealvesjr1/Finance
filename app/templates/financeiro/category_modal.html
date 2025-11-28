@@ -1,29 +1,29 @@
-<div class="modal fade" id="editCategoryModal{{ category.id }}" tabindex="-1" aria-labelledby="editCategoryModalLabel{{ category.id }}" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editCategoryModalLabel{{ category.id }}">Editar Categoria: {{ category.name }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="editCategoryModal{{ category.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Editar Categoria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('financeiro.manage_category', category_id=category.id) }}">
-                <div class="modal-body">
+                <div class="modal-body pt-4">
                     {{ form.hidden_tag() }}
 
                     <div class="mb-3">
-                        <label for="category_name-{{ category.id }}" class="form-label">Nome da Categoria</label>
-                        <input type="text" class="form-control" id="category_name-{{ category.id }}" name="name" value="{{ category.name }}" required>
+                        <label class="form-label fw-bold">Nome</label>
+                        <input type="text" class="form-control" name="name" value="{{ category.name }}" required>
                     </div>
                     <div class="mb-3">
-                        <label for="category_type-{{ category.id }}" class="form-label">Tipo</label>
-                        <select class="form-select" id="category_type-{{ category.id }}" name="type" required>
+                        <label class="form-label fw-bold">Tipo</label>
+                        <select class="form-select" name="type" required>
                             <option value="R" {% if category.type == 'R' %}selected{% endif %}>Receita (Entrada)</option>
                             <option value="D" {% if category.type == 'D' %}selected{% endif %}>Despesa (Saída)</option>
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Salvar</button>
                 </div>
             </form>
         </div>

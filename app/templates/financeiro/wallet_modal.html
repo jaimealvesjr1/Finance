@@ -1,26 +1,29 @@
-<div class="modal fade" id="editWalletModal{{ wallet.id }}" tabindex="-1" aria-labelledby="editWalletModalLabel{{ wallet.id }}" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editWalletModalLabel{{ wallet.id }}">Editar Carteira: {{ wallet.name }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+{% from 'base/components/forms.html' import field %}
+
+<div class="modal fade" id="editWalletModal{{ wallet.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Editar Carteira</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('financeiro.manage_wallet', wallet_id=wallet.id) }}">
-                <div class="modal-body">
+                <div class="modal-body pt-4">
                     {{ form.hidden_tag() }}
-
+                    
                     <div class="mb-3">
-                        <label for="name-{{ wallet.id }}" class="form-label">Nome da Carteira/Conta</label>
-                        <input type="text" class="form-control" id="name-{{ wallet.id }}" name="name" value="{{ wallet.name }}" required>
+                        <label class="form-label fw-bold">Nome</label>
+                        <input type="text" name="name" class="form-control" value="{{ wallet.name }}" required>
                     </div>
+                    
                     <div class="mb-3">
-                        <label for="initial_balance-{{ wallet.id }}" class="form-label">Saldo Inicial (R$)</label>
-                        <input type="number" step="0.01" class="form-control" id="initial_balance-{{ wallet.id }}" name="initial_balance" value="{{ '%.2f'|format(wallet.initial_balance) }}" required>
+                        <label class="form-label fw-bold">Saldo Inicial</label>
+                        <input type="number" step="0.01" name="initial_balance" class="form-control" value="{{ '%.2f'|format(wallet.initial_balance) }}" required>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Salvar</button>
                 </div>
             </form>
         </div>
