@@ -1,0 +1,22 @@
+{% macro icon(category) %}
+  {% if category == 'success' %}✅
+  {% elif category == 'danger' %}❌
+  {% elif category == 'warning' %}⚠️
+  {% elif category == 'info' %}ℹ️
+  {% else %}🔔
+  {% endif %}
+{% endmacro %}
+
+{% macro alert(category, text) %}
+  <div class="alert alert-{{ category }} alert-dismissible fade show auto-dismiss container mt-4" role="alert">
+    <strong>{{ icon(category) }}</strong> {{ text }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  </div>
+{% endmacro %}
+
+{% set mensagens = get_flashed_messages(with_categories=true) %}
+{% if mensagens %}
+  {% for category, text in mensagens %}
+    {{ alert(category, text) }}
+  {% endfor %}
+{% endif %}

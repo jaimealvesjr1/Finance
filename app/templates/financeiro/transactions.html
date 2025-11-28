@@ -1,56 +1,56 @@
-{% extends "base.html" %}
+{% extends "base/layout.html" %}
+
+{% block title %}Transações{% endblock %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-4" style="color: rgb(46, 46, 46);"><strong>{{ title }}</strong></h2>
-        <a href="{{ url_for('financeiro.add_transaction') }}" class="btn btn-success">Nova Transação</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 fw-bold">Movimentações</h2>
+    <a href="{{ url_for('financeiro.add_transaction') }}" class="btn btn-success shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i> Nova
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% if transactions %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-uppercase small text-muted">
+                        <tr>
+                            <th class="ps-4 py-3">Data</th>
+                            <th>Descrição</th>
+                            <th>Carteira</th>
+                            <th>Categoria</th>
+                            <th class="text-end">Valor</th>
+                            <th class="text-center pe-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in transactions %}
+                        <tr>
+                            <td class="ps-4 text-muted font-monospace">{{ t.date.strftime('%d/%m/%Y') }}</td>
+                            <td class="fw-medium">{{ t.description }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ t.wallet.name }}</span></td>
+                            <td><span class="badge bg-light text-secondary border rounded-pill">{{ t.category.name }}</span></td>
+                            <td class="text-end fw-bold {{ 'text-success' if t.type == 'R' else 'text-danger' }}">
+                                {{ '+' if t.type == 'R' else '-' }} R$ {{ "%.2f"|format(t.amount) }}
+                            </td>
+                            <td class="text-center pe-4">
+                                <a href="{{ url_for('financeiro.edit_transaction', transaction_id=t.id) }}" class="btn btn-sm btn-link text-warning p-0" title="Editar">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
+                <p>Nenhuma transação encontrada.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
-
-{% if transactions %}
-<div class="card shadow-sm">
-    <div class="table-responsive">
-        <table class="table table-hover mb-0">
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Descrição</th>
-                    <th>Carteira</th>
-                    <th>Categoria</th>
-                    <th class="text-end">Valor (R$)</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for t in transactions %}
-                {% set text_class = 'text-success' if t.type == 'R' else 'text-danger' %}
-                <tr>
-                    <td>{{ t.date.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ t.description }}</td>
-                    <td>{{ t.wallet.name }}</td>
-                    <td>{{ t.category.name }}</td>
-                    <td class="{{ text_class }} text-end fw-bold">
-                        {{ '+' if t.type == 'R' else '-' }} R$ {{ "%.2f"|format(t.amount) }}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('financeiro.edit_transaction', transaction_id=t.id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-<div class="text-end mt-3">
-    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">⬅ Voltar</a>
-</div>
-
-
-{% else %}
-<div class="alert alert-warning">
-    Nenhuma transação encontrada. Clique em "Nova Transação" para começar.
-</div>
-{% endif %}
-
 {% endblock %}

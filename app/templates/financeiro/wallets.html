@@ -1,74 +1,71 @@
-{% extends "base.html" %}
+{% extends "base/layout.html" %}
+{% from 'base/components/forms.html' import field %}
+{% from 'base/components/buttons.html' import submit %}
+
+{% block title %}Minhas Carteiras{% endblock %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-4" style="color: rgb(46, 46, 46);"><strong>{{ title }}</strong></h2>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-8">        
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0 fw-bold">Carteiras Ativas</h4>
+        </div>
+        
         {% if wallets %}
-            <ul class="list-group">
+            <div class="row g-3">
                 {% for wallet in wallets %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-1">{{ wallet.name }}</h5>
-                            <small class="text-muted">Saldo Atual: 
-                                {% set balance_class = 'text-success' if wallet.current_balance >= 0 else 'text-danger' %}
-                                <span class="{{ balance_class }} fw-bold">R$ {{ "%.2f"|format(wallet.initial_balance) }}</span>
-                            </small>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1 fw-bold">{{ wallet.name }}</h5>
+                                <small class="text-muted">Saldo Atual</small>
+                                <div class="fs-5 fw-bold {{ 'text-success' if wallet.current_balance >= 0 else 'text-danger' }}">
+                                    R$ {{ "%.2f"|format(wallet.current_balance) }}
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editWalletModal{{ wallet.id }}">Editar</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteWalletModal{{ wallet.id }}">Excluir</a></li>
+                                </ul>
+                            </div>
                         </div>
-                        <div>
-                            <button type="button" class="btn btn-sm btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#editWalletModal{{ wallet.id }}">Editar</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteWalletModal{{ wallet.id }}">Excluir</button>
-                        </div>
-                        {% include 'financeiro/wallet_modal.html' with context %}
-
-                        {% set delete_entity = wallet %}
-                        {% set delete_url = url_for('financeiro.delete_wallet', wallet_id=wallet.id) %}
-                        {% set entity_name = 'Carteira' %}
-                        {% set modal_id = 'deleteWalletModal' %}
-                        {% include 'financeiro/delete_modal.html' %}
-
-                    </li>
+                    </div>
+                    {% include 'financeiro/wallet_modal.html' %}
+                    {% set delete_entity = wallet %}
+                    {% set delete_url = url_for('financeiro.delete_wallet', wallet_id=wallet.id) %}
+                    {% set entity_name = 'Carteira' %}
+                    {% set modal_id = 'deleteWalletModal' %}
+                    {% include 'financeiro/delete_modal.html' %}
+                </div>
                 {% endfor %}
-            </ul>
+            </div>
         {% else %}
-            <div class="alert alert-info">
-                Você ainda não possui carteiras cadastradas. Cadastre a primeira abaixo!
+            <div class="alert alert-light text-center border py-5">
+                <i class="bi bi-wallet2 fs-1 text-muted"></i>
+                <p class="mt-3">Nenhuma carteira cadastrada.</p>
             </div>
         {% endif %}
     </div>
-    
-    <div class="col-md-4">
-        <div class="card p-3 shadow-sm">
-            <h4 class="text-center text-warning"><strong>Adicionar Carteira/Conta</strong></h2>
 
-            <form method="POST" action="{{ url_for('financeiro.add_wallet') }}">
-                {{ form.hidden_tag() }}
-
-                <div class="mb-3">
-                    {{ form.name.label(class="form-label") }}
-                    {{ form.name(class="form-control", placeholder="Ex: Banco Inter") }}
-                    {% for error in form.name.errors %}
-                        <span class="text-danger small">{{ error }}</span>
-                    {% endfor %}
-                </div>
-
-                <div class="mb-3">
-                    {{ form.initial_balance.label(class="form-label") }}
-                    {{ form.initial_balance(class="form-control", type="number", step="0.01", placeholder="0.00") }} 
-                    {% for error in form.initial_balance.errors %}
-                        <span class="text-danger small">{{ error }}</span>
-                    {% endfor %}
-                </div>
-
-                <div class="d-grid">
-                    {{ form.submit(class="btn btn-warning text-white") }}
-                </div>
-            </form>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0 text-white"><i class="bi bi-plus-circle me-2"></i>Nova Carteira</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('financeiro.add_wallet') }}">
+                    {{ form.hidden_tag() }}
+                    {{ field(form.name, placeholder="Ex: Banco Inter") }}
+                    {{ field(form.initial_balance, placeholder="0.00") }}
+                    {{ submit('Salvar Carteira', class="btn-primary w-100") }}
+                </form>
+            </div>
         </div>
     </div>
 </div>

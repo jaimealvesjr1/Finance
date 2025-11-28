@@ -1,0 +1,59 @@
+{% macro format_datetime(value, format='short') %}
+  {{ value.strftime('%d/%m/%Y %H:%M') if value else '' }}
+{% endmacro %}
+
+{% macro render_meta_card(label, meta, atual, icon_class) %}
+<div class="col">
+    {% set progresso_percent = 0 %}
+    {% set status_class = 'danger' %}
+
+    {% if meta is number and meta > 0 %}
+        {% set progresso_percent = (atual / meta) * 100 %}
+        
+        {% set largura_visivel = progresso_percent %}
+        {% if progresso_percent > 100 %}
+            {% set largura_visivel = 100 %}
+        {% endif %}
+        
+        {% if progresso_percent > 100 %}
+            {% set status_class = 'primary' %}
+        {% elif progresso_percent >= 99 %}
+            {% set status_class = 'success' %}
+        {% elif progresso_percent >= 41 %}
+            {% set status_class = 'warning' %}
+        {% else %}
+            {% set status_class = 'danger' %}
+        {% endif %}
+    {% else %}
+        {% set progresso_percent = 0 %}
+        {% set largura_visivel = 0 %}
+        {% set status_class = 'secondary' %}
+    {% endif %}
+
+    <div class="card h-100 border-start border-4 border-{{ status_class }} shadow-sm">
+        <div class="position-absolute top-0 start-0 h-100 bg-{{ status_class }} opacity-25" style="width: {{ largura_visivel | int }}%;"></div>
+        <div class="card-body p-2 d-flex align-items-center position-relative">
+            <i class="bi {{ icon_class }} icon-small me-2 fs-4 text-{{ status_class }}"></i>
+            <div>
+                <small class="text-muted d-block">{{ label }}</small>
+                <p class="mb-0">
+                    <strong class="text-{{ status_class }}">
+                        {% if meta is number and meta > 0 %}
+                            {{ atual }} / {{ meta }}
+                        {% else %}
+                            {{ atual }}
+                        {% endif %}
+                    </strong>
+                </p>
+                <small class="text-muted">
+                    {% if meta is number and meta > 0 %}
+                        {{ (progresso_percent)|round(0) }}% da meta
+                    {% else %}
+                        Meta não definida
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}

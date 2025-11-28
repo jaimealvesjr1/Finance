@@ -1,52 +1,40 @@
-{% extends "base.html" %}
+{% extends "base/layout_simple.html" %}
+{% from 'base/components/forms.html' import field %}
+{% from 'base/components/buttons.html' import submit %}
 
 {% block content %}
-<div class="row justify-content-center" style="padding-top: 100px;">
-    <div class="card shadow-lg p-4 rounded-4 mx-auto" style="max-width: 500px;">
-        <h2 class="text-center" style="color: darkgreen;;"><strong>Crie sua Conta!</strong></h2>
-        <form method="POST" action="{{ url_for('auth.register') }}">
-            {{ form.hidden_tag() }}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="text-center mb-4">
+            <h3 class="fw-bold text-dark">Criar Nova Conta</h3>
+            <p class="text-muted">Comece a controlar o seu dinheiro hoje.</p>
+        </div>
 
-            <div class="mb-3">
-                {{ form.username.label(class="form-label") }}
-                {{ form.username(class="form-control", placeholder="Pode ser seu nome e sobrenome") }}
-                {% for error in form.username.errors %}
-                    <span class="text-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
+        <div class="card border-0 shadow-lg">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('auth.register') }}">
+                    {{ form.hidden_tag() }}
 
-            <div class="mb-3">
-                {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control", placeholder="Não vamos te encher de spam") }}
-                {% for error in form.email.errors %}
-                    <span class="text-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
-            
-            <div class="mb-3">
-                {{ form.password.label(class="form-label") }}
-                {{ form.password(class="form-control", placeholder="Pelo menos 6 caracteres") }}
-                {% for error in form.password.errors %}
-                    <span class="text-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
+                    {{ field(form.username, placeholder="Seu nome") }}
+                    {{ field(form.email, placeholder="seu@email.com") }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ field(form.password) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ field(form.password2) }}
+                        </div>
+                    </div>
 
-            <div class="mb-3">
-                {{ form.password2.label(class="form-label") }}
-                {{ form.password2(class="form-control", placeholder="Lembra da senha?") }}
-                {% for error in form.password2.errors %}
-                    <span class="text-danger">{{ error }}</span>
-                {% endfor %}
+                    {{ submit('Registar', class="btn-success w-100 py-2") }}
+                </form>
             </div>
-
-            <div class="d-grid">
-                {{ form.submit(class="btn btn-success") }}
+            <div class="card-footer bg-light text-center py-3 border-0">
+                <span class="text-muted">Já tem conta?</span> 
+                <a href="{{ url_for('auth.login') }}" class="text-primary fw-bold text-decoration-none">Fazer Login</a>
             </div>
-            
-            <p class="mt-3 text-center">
-                Já tem uma conta? <a href="{{ url_for('auth.login') }}">Fazer Login</a>.
-            </p>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}

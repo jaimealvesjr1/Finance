@@ -1,0 +1,44 @@
+{% macro field(field) %}
+    <div class="mb-3">
+        {# Renderiza o label primeiro #}
+        {{ field.label(class="form-label") }}
+        
+        {# Adiciona 'form-control' ou 'form-select' às kwargs se não houver classe definida #}
+        {% set field_class = kwargs.pop('class', '') %}
+        
+        {% if field.type == 'SelectField' %}
+            {% if not field_class %}
+                {% set field_class = 'form-select' %}
+            {% endif %}
+            {{ field(class=field_class, **kwargs) }}
+        
+        {% elif field.type == 'TextAreaField' %}
+            {% if not field_class %}
+                {% set field_class = 'form-control' %}
+            {% endif %}
+            {# Garante que rows do form tenha precedência sobre kwargs, se existir #}
+            {% set rows = kwargs.pop('rows', field.render_kw.get('rows', 3)) %}
+            {{ field(class=field_class, rows=rows, **kwargs) }}
+        
+        {% elif field.type == 'DateField' %}
+            {% if not field_class %}
+                {% set field_class = 'form-control' %}
+            {% endif %}
+            {{ field(class=field_class, type="date", **kwargs) }}
+        
+        {% else %}
+            {# Para todos os outros campos (StringField, FloatField, etc.) #}
+            {% if not field_class %}
+                {% set field_class = 'form-control' %}
+            {% endif %}
+            {{ field(class=field_class, **kwargs) }}
+        {% endif %}
+        
+        {# Exibição de erros #}
+        {% if field.errors %}
+            {% for error in field.errors %}
+                <div class="alert alert-danger mt-1">{{ error }}</div>
+            {% endfor %}
+        {% endif %}
+    </div>
+{% endmacro %}

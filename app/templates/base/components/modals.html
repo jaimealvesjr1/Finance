@@ -1,0 +1,19 @@
+{% macro confirm_modal(id, title, body, action_url) %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}Label" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ action_url }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="{{ id }}Label">{{ title }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">{{ body }}</div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endmacro %}
