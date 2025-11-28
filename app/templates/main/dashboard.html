@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-4" style="color: rgb(46, 46, 46);"><strong>{{ title }}</strong></h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Receitas do Mês</h5>
+                <p class="card-text fs-3">R$ {{ "%.2f"|format(monthly_income) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">Despesas do Mês</h5>
+                <p class="card-text fs-3">R$ {{ "%.2f"|format(monthly_expenses) }}</p>
+            </div>
+        </div>
+    </div>
+    {% set balance_class = 'text-white bg-success' if total_balance >= 0 else 'text-white bg-danger' %}
+    <div class="col-md-4 mb-3">
+        <div class="card text-dark bg-light border-primary">
+            <div class="card-body">
+                <h5 class="card-title">Saldo Total</h5>
+                <p class="card-text fs-3">R$ {{ "%.2f"|format(total_balance) }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class="mt-4 mb-3 text-center" style="color: rgb(46, 46, 46);"><strong>Últimas Transações</strong></h3>
+
+{% if latest_transactions %}
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Carteira</th>
+                        <th class="text-end">Valor (R$)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in latest_transactions %}
+                    {% set text_class = 'text-success' if t.type == 'R' else 'text-danger' %}
+                    <tr>
+                        <td>{{ t.date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ t.description }}</td>
+                        <td>{{ t.wallet.name }}</td>
+                        <td class="{{ text_class }} text-end fw-bold">
+                            {{ '+' if t.type == 'R' else '-' }} R$ {{ "%.2f"|format(t.amount) }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('financeiro.transactions') }}" class="btn btn-sm btn-outline-secondary">Ver Mais</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="text-end mt-2">
+        <a href="{{ url_for('financeiro.transactions') }}" class="btn btn-outline-secondary">Ver todas as transações →</a>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        Nenhuma transação recente. Que tal <a href="{{ url_for('financeiro.add_transaction') }}">adicionar sua primeira</a>?
+    </div>
+{% endif %}
+{% endblock %}

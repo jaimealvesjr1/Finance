@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-4" style="color: rgb(46, 46, 46);"><strong>{{ title }}</strong></h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        {% if categories %}
+            <ul class="list-group">
+                {% for category in categories %}
+                    {% set badge_class = 'success' if category.type == 'R' else 'danger' %}
+                    {% set type_label = 'Receita' if category.type == 'R' else 'Despesa' %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <h5 class="mb-1">{{ category.name }}</h5>
+                        <span class="badge bg-{{ badge_class }}">{{ type_label }}</span>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ category.id }}">Editar</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal{{ category.id }}">Excluir</button>
+                        </div>
+                        {% include 'financeiro/category_modal.html' with context %}
+
+                        {% set delete_entity = category %}
+                        {% set delete_url = url_for('financeiro.delete_category', category_id=category.id) %}
+                        {% set entity_name = 'Categoria' %}
+                        {% set modal_id = 'deleteCategoryModal' %}
+                        {% include 'financeiro/delete_modal.html' %}
+
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="alert alert-info">
+                Você ainda não possui categorias cadastradas. Cadastre a primeira abaixo!
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+            <h4 class="text-center text-warning"><strong>Adicionar Categoria</strong></h2>
+            <form method="POST" action="{{ url_for('financeiro.add_category') }}">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control", placeholder="Ex: Salário, Aluguel, Alimentação") }}
+                    {% for error in form.name.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.type.label(class="form-label") }}
+                    {{ form.type(class="form-select") }} 
+                    {% for error in form.type.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="d-grid">
+                    {{ form.submit(class="btn btn-warning text-white") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

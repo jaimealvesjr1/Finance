@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-4" style="color: rgb(46, 46, 46);"><strong>{{ title }}</strong></h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">        
+        {% if wallets %}
+            <ul class="list-group">
+                {% for wallet in wallets %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">{{ wallet.name }}</h5>
+                            <small class="text-muted">Saldo Atual: 
+                                {% set balance_class = 'text-success' if wallet.current_balance >= 0 else 'text-danger' %}
+                                <span class="{{ balance_class }} fw-bold">R$ {{ "%.2f"|format(wallet.initial_balance) }}</span>
+                            </small>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#editWalletModal{{ wallet.id }}">Editar</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteWalletModal{{ wallet.id }}">Excluir</button>
+                        </div>
+                        {% include 'financeiro/wallet_modal.html' with context %}
+
+                        {% set delete_entity = wallet %}
+                        {% set delete_url = url_for('financeiro.delete_wallet', wallet_id=wallet.id) %}
+                        {% set entity_name = 'Carteira' %}
+                        {% set modal_id = 'deleteWalletModal' %}
+                        {% include 'financeiro/delete_modal.html' %}
+
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="alert alert-info">
+                Você ainda não possui carteiras cadastradas. Cadastre a primeira abaixo!
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+            <h4 class="text-center text-warning"><strong>Adicionar Carteira/Conta</strong></h2>
+
+            <form method="POST" action="{{ url_for('financeiro.add_wallet') }}">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control", placeholder="Ex: Banco Inter") }}
+                    {% for error in form.name.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.initial_balance.label(class="form-label") }}
+                    {{ form.initial_balance(class="form-control", type="number", step="0.01", placeholder="0.00") }} 
+                    {% for error in form.initial_balance.errors %}
+                        <span class="text-danger small">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="d-grid">
+                    {{ form.submit(class="btn btn-warning text-white") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

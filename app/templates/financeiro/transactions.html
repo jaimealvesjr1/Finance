@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-4" style="color: rgb(46, 46, 46);"><strong>{{ title }}</strong></h2>
+        <a href="{{ url_for('financeiro.add_transaction') }}" class="btn btn-success">Nova Transação</a>
+    </div>
+</div>
+
+{% if transactions %}
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Carteira</th>
+                    <th>Categoria</th>
+                    <th class="text-end">Valor (R$)</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transactions %}
+                {% set text_class = 'text-success' if t.type == 'R' else 'text-danger' %}
+                <tr>
+                    <td>{{ t.date.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ t.description }}</td>
+                    <td>{{ t.wallet.name }}</td>
+                    <td>{{ t.category.name }}</td>
+                    <td class="{{ text_class }} text-end fw-bold">
+                        {{ '+' if t.type == 'R' else '-' }} R$ {{ "%.2f"|format(t.amount) }}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('financeiro.edit_transaction', transaction_id=t.id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="text-end mt-3">
+    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">⬅ Voltar</a>
+</div>
+
+
+{% else %}
+<div class="alert alert-warning">
+    Nenhuma transação encontrada. Clique em "Nova Transação" para começar.
+</div>
+{% endif %}
+
+{% endblock %}

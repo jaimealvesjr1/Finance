@@ -1,0 +1,31 @@
+<div class="modal fade" id="editCategoryModal{{ category.id }}" tabindex="-1" aria-labelledby="editCategoryModalLabel{{ category.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCategoryModalLabel{{ category.id }}">Editar Categoria: {{ category.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('financeiro.manage_category', category_id=category.id) }}">
+                <div class="modal-body">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="category_name-{{ category.id }}" class="form-label">Nome da Categoria</label>
+                        <input type="text" class="form-control" id="category_name-{{ category.id }}" name="name" value="{{ category.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category_type-{{ category.id }}" class="form-label">Tipo</label>
+                        <select class="form-select" id="category_type-{{ category.id }}" name="type" required>
+                            <option value="R" {% if category.type == 'R' %}selected{% endif %}>Receita (Entrada)</option>
+                            <option value="D" {% if category.type == 'D' %}selected{% endif %}>Despesa (Saída)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

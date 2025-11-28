@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="card shadow-lg p-4 rounded-4 mx-auto" style="max-width: 500px;">
+        {% if is_edit %}
+        <h2 class="text-center text-warning"><strong>{{title}}</strong></h2>
+        {% else %}
+        <h2 class="text-center text-success"><strong>{{title}}</strong></h2>
+        {% endif %}
+        {% if is_edit %}
+            {% set current_transaction_id = transaction_id %}
+            {% set form_action = url_for('financeiro.edit_transaction', transaction_id=current_transaction_id) %}
+            {% set submit_text = 'Salvar Alterações' %}
+            {% set submit_class = 'btn-warning text-white' %}
+        {% else %}
+            {% set form_action = url_for('financeiro.add_transaction') %}
+            {% set submit_text = 'Registrar Transação' %}
+            {% set submit_class = 'btn-success' %}
+        {% endif %}
+        <form method="POST" action="{{ form_action }}">
+            {{ form.hidden_tag() }}
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", placeholder="Ex: Salário, Compra no Supermercado") }}
+                        {% for error in form.description.errors %}
+                            <span class="text-danger small">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.amount.label(class="form-label") }}
+                        {{ form.amount(class="form-control", type="number", step="0.01", placeholder="100.00") }}
+                        {% for error in form.amount.errors %}
+                            <span class="text-danger small">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.date.label(class="form-label") }}
+                        {{ form.date(class="form-control", type="date") }} 
+                        {% for error in form.date.errors %}
+                            <span class="text-danger small">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.type.label(class="form-label") }}
+                        {{ form.type(class="form-select") }}
+                        {% for error in form.type.errors %}
+                            <span class="text-danger small">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.wallet.label(class="form-label") }}
+                        {{ form.wallet(class="form-select") }}
+                        {% for error in form.wallet.errors %}
+                            <span class="text-danger small">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.category.label(class="form-label") }}
+                        {{ form.category(class="form-select") }}
+                        {% for error in form.category.errors %}
+                            <span class="text-danger small">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <h5 class="mt-4 mb-3 border-bottom pb-2">Recorrência</h5>
+            
+            <div class="mb-3 form-check">
+                {{ form.is_recurrent(class="form-check-input", id="is_recurrent_check") }}
+                {{ form.is_recurrent.label(class="form-check-label", for="is_recurrent_check") }}
+            </div>
+
+            <div class="mb-3" id="frequency_field">
+                {{ form.frequency.label(class="form-label") }}
+                {{ form.frequency(class="form-select") }}
+                {% for error in form.frequency.errors %}
+                    <span class="text-danger small">{{ error }}</span>
+                {% endfor %}
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center"> 
+                <div class="d-grid flex-grow-1 me-3">
+                    {{ form.submit(class="btn btn-lg " + submit_class, value=submit_text) }}
+                </div>
+
+                {% if is_edit %}
+                <button type="button" class="btn btn-lg btn-outline-danger flex-grow-1" 
+                        data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    Deletar
+                </button>
+                {% endif %}
+            </div>
+                
+        </form>
+        <div class="text-end mt-3">
+            <a href="{{ url_for('financeiro.transactions') }}" class="btn btn-outline-secondary">⬅ Voltar</a>
+        </div>
+
+
+        {% if is_edit %}
+        {% set transaction_id_modal = current_transaction_id %} <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Você tem certeza que deseja apagar esta transação? Esta ação não pode ser desfeita.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <form method="POST" action="{{ url_for('financeiro.delete_transaction', transaction_id=transaction_id_modal) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger">Sim, Apagar!</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const recurrentCheck = document.getElementById('is_recurrent_check');
+    const frequencyField = document.getElementById('frequency_field');
+
+    function toggleFrequency() {
+        if (recurrentCheck.checked) {
+            frequencyField.style.display = 'block';
+        } else {
+            frequencyField.style.display = 'none';
+        }
+    }
+
+    toggleFrequency();
+
+    recurrentCheck.addEventListener('change', toggleFrequency);
+});
+</script>
+{% endblock %}

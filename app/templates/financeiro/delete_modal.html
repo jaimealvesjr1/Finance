@@ -1,0 +1,21 @@
+<div class="modal fade" id="{{ modal_id }}{{ delete_entity.id }}" tabindex="-1" aria-labelledby="{{ modal_id }}Label{{ delete_entity.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ modal_id }}Label{{ delete_entity.id }}">Confirmar Exclusão de {{ entity_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Você tem certeza que deseja excluir **{{ delete_entity.name }}**?
+                <br>
+                <strong>ATENÇÃO:</strong> Só é possível excluir se não houver transações ligadas a ela.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ delete_url }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">Sim, Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
