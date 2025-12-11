@@ -16,8 +16,7 @@
             {% if not field_class %}
                 {% set field_class = 'form-control' %}
             {% endif %}
-            {# Garante que rows do form tenha precedência sobre kwargs, se existir #}
-            {% set rows = kwargs.pop('rows', field.render_kw.get('rows', 3)) %}
+            {% set rows = kwargs.pop('rows', (field.render_kw or {}).get('rows', 3)) %}
             {{ field(class=field_class, rows=rows, **kwargs) }}
         
         {% elif field.type == 'DateField' %}

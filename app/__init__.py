@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, session
 from config import Config
 from .extensions import db, login_manager, migrate, scheduler
 import os
@@ -10,6 +10,7 @@ from .financeiro import models as financeiro_models
 from .auth.routes import auth_bp
 from .main.routes import main_bp
 from .financeiro.routes import financeiro_bp
+from .admin.routes import admin_bp
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -42,6 +43,28 @@ def create_app(config_class=Config):
         from .auth.models import User
         return User.query.get(int(user_id))
     
+    @app.before_request
+    def check_access_status():
+        from flask_login import current_user, logout_user
+        from flask import url_for, redirect, flash, request
+        
+        if current_user.is_authenticated and request.endpoint and not request.blueprint in ['auth']:
+            
+            if not current_user.is_active and not current_user.is_admin:
+                
+                if request.endpoint not in ['auth.profile', 'auth.logout']:
+                    flash('Seu acesso está suspenso. Renove sua assinatura na tela de perfil.', 'danger')
+                    return redirect(url_for('auth.profile'))
+            
+            if current_user.pending_message:
+                message = current_user.pending_message
+                flash(f'Mensagem do Administrador: {message}', 'warning')
+                
+                current_user.pending_message = None 
+                db.session.commit()
+                
+                return redirect(url_for(request.endpoint, **request.args))
+    
     @scheduler.task('interval', id='recorrencia_check', minutes=30)
     def job_process_recorrencia():
         with app.app_context():
@@ -53,5 +76,6 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(financeiro_bp)
+    app.register_blueprint(admin_bp)
 
     return app

@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
+from flask_login import current_user
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length
 from .models import User
 
@@ -35,3 +36,34 @@ class RegistrationForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user is not None:
             raise ValidationError('Este email já está registrado.')
+
+class ChangePasswordForm(FlaskForm):
+    """Formulário para mudança de senha."""
+    old_password = PasswordField('Senha Atual', validators=[DataRequired()])
+    password = PasswordField('Nova Senha', validators=[
+        DataRequired(), Length(min=6, message="A senha deve ter no mínimo 6 caracteres.")
+    ])
+    password2 = PasswordField(
+        'Repetir Nova Senha', validators=[DataRequired(), EqualTo(
+            'password', message='As senhas devem ser iguais.'
+        )])
+    submit = SubmitField('Alterar Senha')
+    
+    def validate_old_password(self, old_password):
+        if not current_user.check_password(old_password.data):
+            raise ValidationError('A senha atual está incorreta.')
+
+
+class ChangeEmailForm(FlaskForm):
+    """Formulário para mudança de email."""
+    email = StringField('Novo Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Alterar Email')
+
+    def validate_email(self, email):
+        """Verifica se o novo email já está registrado (por outro usuário)."""
+        if email.data != current_user.email:
+            # Importa User aqui para evitar dependência circular de topo
+            from .models import User 
+            user = User.query.filter_by(email=email.data).first()
+            if user is not None:
+                raise ValidationError('Este email já está registrado por outra conta.')

@@ -3,13 +3,32 @@
 {% block title %}Dashboard · Finance{% endblock %}
 
 {% block content %}
+
+{% if not is_active %}
+<div class="row justify-content-center pt-5">
+    <div class="col-md-8 text-center">
+        <h1 class="display-4 fw-bold text-danger">Acesso Suspenso</h1>
+        <p class="lead">Sua conta está inativa. Para visualizar e gerenciar seus dados financeiros, renove sua assinatura.</p>
+        
+        <div class="card p-4 mt-5 shadow-lg border-0 bg-light">
+            <h5 class="mb-3">Como Reativar?</h5>
+            <p>Acesse **Meu Perfil** para verificar sua data de vencimento e entre em contato com o Administrador para efetuar o pagamento e liberar o acesso.</p>
+            <a href="{{ url_for('auth.profile') }}" class="btn btn-danger btn-lg mt-3">
+                <i class="bi bi-person-fill me-2"></i> Ir para Meu Perfil
+            </a>
+        </div>
+        
+        <p class="mt-4 text-muted small">Se você acredita que isso é um erro, entre em contato imediatamente com o suporte.</p>
+    </div>
+</div>
+
+{% else %}
 <div class="d-flex justify-content-between align-items-center mb-5">
     <div>
         <h2 class="mb-1"><strong>Visão Geral Financeira</strong></h2>
         <p class="text-muted mb-0">Fluxo de caixa e resumo do mês atual.</p>
     </div>
     <div class="d-flex gap-2">
-        {# 4. Botões de ação direta #}
         <a href="{{ url_for('financeiro.add_revenue') }}" class="btn btn-success shadow-sm">
             <i class="bi bi-plus-lg me-2"></i>Nova Receita
         </a>
@@ -108,7 +127,7 @@
     <div class="col-md-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-transparent border-0 pt-4 px-4">
-                <h5 class="mb-0">Receitas Recebidas por Categoria (Total: {{ monthly_received_revenue | currency }})</h5>
+                <h5 class="mb-0">Receitas Recebidas por Categoria</h5>
             </div>
             <div class="card-body">
                 {% if pie_revenue_data %}
@@ -125,7 +144,7 @@
     <div class="col-md-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-transparent border-0 pt-4 px-4">
-                <h5 class="mb-0">Despesas Pagas por Item (Total: {{ monthly_paid_expenses | currency }})</h5>
+                <h5 class="mb-0">Despesas Pagas por Item</h5>
             </div>
             <div class="card-body">
                 {% if pie_expense_data %}
@@ -347,4 +366,5 @@
         });
     }
 </script>
+{% endif %}
 {% endblock %}

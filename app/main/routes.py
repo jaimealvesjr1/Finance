@@ -18,6 +18,12 @@ def index():
     current_month = today.month
     current_year = today.year
 
+    if not current_user.is_active:
+        return render_template('main/dashboard.html', 
+                               is_active=False,
+                               title='Acesso Bloqueado', 
+                               **footer)
+
     # 1. SALDO TOTAL
     total_balance = sum(wallet.current_balance for wallet in current_user.wallets)
 
@@ -178,29 +184,26 @@ def index():
         chart_despesas.append(float(desp_result))
         
     context = {
-        # KPI Cards (Atualizados)
         'total_balance': total_balance,
         'monthly_received_revenue': monthly_received_revenue, 
         'monthly_receivable_revenue': monthly_receivable_revenue, 
         'monthly_paid_expenses': monthly_paid_expenses, 
         'monthly_pending_expenses': monthly_pending_expenses, 
         
-        # Pie Charts
         'pie_revenue_labels': pie_revenue_labels,
         'pie_revenue_data': pie_revenue_data,
         'pie_expense_labels': pie_expense_labels,
         'pie_expense_data': pie_expense_data,
         
-        # Lists (Novas)
         'receivable_revenues': receivable_revenues,
         'pending_expenses': pending_expenses,
-        'now_date': today.date(), # Usado para comparação de datas de vencimento/recebimento
+        'now_date': today.date(),
         
-        # Bar Chart (6 months)
         'chart_labels': chart_labels,
         'chart_receitas': chart_receitas,
         'chart_despesas': chart_despesas,
 
+        'is_active': True,
         'title': 'Dashboard'
     }
 

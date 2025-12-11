@@ -1,7 +1,8 @@
 from app.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, date
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.financeiro.models import Wallet, RevenueCategory, RevenueTransaction, ExpenseGroup, ExpenseItem, Expense
 
 class User(UserMixin, db.Model):
@@ -10,6 +11,10 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), index=True, unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    access_due_date = db.Column(db.Date, nullable=True) 
+    pending_message = db.Column(db.String(500), nullable=True)
 
     wallets = db.relationship('Wallet', backref='user', lazy='dynamic')
     categories = db.relationship('RevenueCategory', backref='user', lazy='dynamic')
@@ -26,6 +31,11 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         """"Verifica se a senha fornecida corresponde ao hash."""
         return check_password_hash(self.password_hash, password)
+    
+    @hybrid_property
+    def is_active(self):
+        today = date.today()
+        return self.is_admin or (self.access_due_date and self.access_due_date >= today)
     
     def __repr__(self):
         return f'<User {self.username}>'
