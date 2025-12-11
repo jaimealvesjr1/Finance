@@ -4,7 +4,7 @@ from app.extensions import db
 from .forms import LoginForm, RegistrationForm, ChangePasswordForm, ChangeEmailForm
 from .models import User
 from config import Config
-from datetime import date
+from datetime import date, timedelta
 
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 footer = {'ano': Config.ANO_ATUAL, 'versao': Config.VERSAO_APP}
@@ -108,7 +108,7 @@ def register():
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
-
+        user.access_due_date = date.today() + timedelta(days=30)
         db.session.add(user)
         db.session.commit()
 
