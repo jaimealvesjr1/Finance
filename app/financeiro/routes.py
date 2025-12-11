@@ -8,6 +8,7 @@ from config import Config
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, extract
 from decimal import Decimal
+from dateutil.relativedelta import relativedelta
 
 financeiro_bp = Blueprint('financeiro', __name__, template_folder='templates', url_prefix='/financeiro')
 footer = {'ano': Config.ANO_ATUAL, 'versao': Config.VERSAO_APP}
@@ -18,6 +19,17 @@ def flash_form_errors(form):
             field_obj = getattr(form, field_name, None)
             field_label = field_obj.label.text if field_obj and hasattr(field_obj, 'label') else field_name
             flash(f"Erro no campo '{field_label}': {error}", 'danger')
+
+def calculate_next_date(start_date, frequency):
+    if frequency == 'daily':
+        return start_date + relativedelta(days=1)
+    elif frequency == 'weekly':
+        return start_date + relativedelta(weeks=1)
+    elif frequency == 'monthly':
+        return start_date + relativedelta(months=1)
+    elif frequency == 'yearly':
+        return start_date + relativedelta(years=1)
+    return start_date
 
 @financeiro_bp.route('/carteiras')
 @login_required
@@ -530,6 +542,20 @@ def add_expense():
     if form.validate_on_submit():
         is_paid = (form.status.data == 'paid')
         
+        # Lógica para o novo recurso de lançamentos em massa (IML)
+        try:
+            num_repetitions = int(form.num_repetitions.data)
+        except ValueError:
+            num_repetitions = 0
+            
+        frequency = form.frequency.data
+        
+        # 1. Determina se esta transação será um template CR ou o início de uma IML
+        # Se houver repetições IML (num_repetitions > 0), esta transação NÃO deve ser um template de recorrência contínua (CR)
+        is_recurrent_flag = form.is_recurrent.data and num_repetitions == 0 
+        frequency_for_template = form.frequency.data if is_recurrent_flag else None
+
+        # 1. Cria a primeira (ou única) transação base
         expense = Expense(
             description=form.description.data,
             amount=form.amount.data,
@@ -538,8 +564,8 @@ def add_expense():
             is_paid=is_paid,
             payment_date=datetime.combine(form.payment_date.data, datetime.min.time()) if is_paid and form.payment_date.data else None,
             
-            is_recurrent=form.is_recurrent.data,
-            frequency=form.frequency.data if form.is_recurrent.data else None,
+            is_recurrent=is_recurrent_flag,
+            frequency=frequency_for_template,
             
             user_id=current_user.id,
             wallet_id=form.wallet.data.id,
@@ -547,9 +573,52 @@ def add_expense():
         )
         
         db.session.add(expense)
+
+        # 2. Lançamento em massa de instâncias futuras (se num_repetitions > 0)
+        if num_repetitions > 0:
+            if not frequency or frequency == '':
+                 flash('A frequência é obrigatória para repetições em massa.', 'danger')
+                 db.session.rollback()
+                 return redirect(url_for('financeiro.add_expense'))
+                 
+            # A primeira despesa já foi adicionada, agora adicionamos as repetições.
+            current_due_date = form.due_date.data
+            for _ in range(num_repetitions):
+                # Calcula a próxima data de vencimento (a partir da data anterior)
+                current_due_date = calculate_next_date(current_due_date, frequency)
+                
+                # Cria uma nova instância de despesa, sempre A PAGAR (is_paid=False) e NÃO recorrente
+                new_expense = Expense(
+                    description=form.description.data,
+                    amount=form.amount.data,
+                    date=form.date.data, # Mantido o date original, mas usei date.today() no outro passo, usar a data de registro do form.
+                    due_date=current_due_date,
+                    is_paid=False, 
+                    payment_date=None, 
+                    
+                    is_recurrent=False, # Não é um template para o job
+                    frequency=None,
+                    
+                    user_id=current_user.id,
+                    wallet_id=form.wallet.data.id,
+                    item_id=form.item.data.id
+                )
+                db.session.add(new_expense)
+            
+            db.session.commit()
+            total_lancamentos = num_repetitions + 1 # Transação inicial + repetições
+            msg = f'Despesa registrada e mais {num_repetitions} lançamentos futuros criados (Total: {total_lancamentos}).'
+            flash(msg, 'success')
+            return redirect(url_for('financeiro.expenses'))
+            
+        # 3. Lançamento único ou recorrente contínuo (se num_repetitions == 0)
         db.session.commit()
         
-        msg = 'Despesa registrada como PAGA com sucesso!' if is_paid else 'Despesa registrada como PENDENTE com sucesso!'
+        if is_recurrent_flag:
+            msg = 'Despesa registrada como template de recorrência contínua (agendada) com sucesso! Ela será repetida automaticamente.'
+        else:
+            msg = 'Despesa registrada como PAGA com sucesso!' if is_paid else 'Despesa registrada como PENDENTE com sucesso!'
+            
         flash(msg, 'success')
         return redirect(url_for('financeiro.expenses'))
     

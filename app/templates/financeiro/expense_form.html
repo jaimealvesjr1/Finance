@@ -64,7 +64,7 @@
                         </div>
                     </div>
 
-
+                    {% if not is_edit %}
                     <div class="bg-light p-3 rounded mt-4 mb-4">
                         <div class="form-check form-switch">
                             {{ form.is_recurrent(class="form-check-input", id="is_recurrent_check") }}
@@ -72,10 +72,16 @@
                                 Repetir esta despesa?
                             </label>
                         </div>
-                        <div class="mt-3" id="frequency_field" style="display: none;">
-                            {{ field(form.frequency) }}
+                        <div class="mt-3 row" id="frequency_field" style="display: none;">
+                            <div class="col-md-6">
+                                {{ field(form.frequency) }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ field(form.num_repetitions) }}
+                            </div>
                         </div>
                     </div>
+                    {% endif %}
                     
                     <div class="gap-2">
                         {{ submit('Salvar Despesa', class=btn_class + " flex-grow-1") }}
@@ -121,12 +127,18 @@
 <script>
 // Toggle da recorrência
 document.addEventListener('DOMContentLoaded', function() {
+    // Adicionado verificação de existência para elementos que só existem no modo 'add'
     const check = document.getElementById('is_recurrent_check');
     const freqDiv = document.getElementById('frequency_field');
     const statusField = document.getElementById('status_field');
     const paymentDateDiv = document.getElementById('payment_date_div');
 
-    function toggleRecurrence() { freqDiv.style.display = check.checked ? 'block' : 'none'; }
+    function toggleRecurrence() { 
+        if (freqDiv) {
+            freqDiv.style.display = check.checked ? 'flex' : 'none'; 
+        }
+    }
+    
     function togglePaymentDate() {
         const isPaid = statusField.value === 'paid';
         if (paymentDateDiv) {
@@ -134,14 +146,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    if(check) { check.addEventListener('change', toggleRecurrence); toggleRecurrence(); }
-    if(statusField) { statusField.addEventListener('change', togglePaymentDate); togglePaymentDate(); }
+    if(check) { 
+        check.addEventListener('change', toggleRecurrence); 
+        toggleRecurrence(); 
+    }
+    if(statusField) { 
+        statusField.addEventListener('change', togglePaymentDate); 
+        togglePaymentDate(); 
+    }
     
     // Injeta a classe Select2 no campo de Item (para fins de UX/visual)
     $('#item').select2({
         theme: "bootstrap-5",
         dropdownParent: $('#expense_form')
     });
+    
+    // Aplica Select2 nos campos de recorrência APENAS SE EXISTIREM
+    if ($('#frequency').length) {
+        $('#frequency').select2({
+            theme: "bootstrap-5",
+            dropdownParent: $('#expense_form')
+        });
+    }
+    if ($('#num_repetitions').length) {
+        $('#num_repetitions').select2({
+            theme: "bootstrap-5",
+            dropdownParent: $('#expense_form')
+        });
+    }
 });
 </script>
 {% endblock %}
