@@ -3,7 +3,7 @@ from werkzeug.exceptions import abort
 from flask_login import login_required, current_user
 from app.extensions import db
 from .models import Wallet, RevenueCategory, RevenueTransaction, ExpenseGroup, ExpenseItem, Expense 
-from .forms import WalletForm, RevenueCategoryForm, RevenueTransactionForm, ExpenseGroupForm, ExpenseItemForm, ExpenseForm
+from .forms import WalletForm, RevenueCategoryForm, RevenueTransactionForm, ExpenseGroupForm, ExpenseItemForm, ExpenseForm, TransferForm
 from config import Config
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, extract
@@ -36,7 +36,74 @@ def calculate_next_date(start_date, frequency):
 def wallets():
     wallets = Wallet.query.filter_by(user_id=current_user.id).all()
     form = WalletForm()
-    return render_template('financeiro/wallets.html', wallets=wallets, form=form, title='Minhas Carteiras', **footer)
+    form_transfer = TransferForm()
+    return render_template('financeiro/wallets.html', 
+                           wallets=wallets, 
+                           form=form, 
+                           form_transfer=form_transfer,
+                           title='Minhas Carteiras', 
+                           **footer)
+
+@financeiro_bp.route('/transferencia', methods=['POST'])
+@login_required
+def transfer():
+    form = TransferForm()
+    
+    form.source_wallet.query_factory = lambda: Wallet.query.filter_by(user_id=current_user.id).all()
+    form.target_wallet.query_factory = lambda: Wallet.query.filter_by(user_id=current_user.id).all()
+
+    if form.validate_on_submit():
+        amount = form.amount.data
+        source_wallet = form.source_wallet.data
+        target_wallet = form.target_wallet.data
+        
+        first_revenue_category = RevenueCategory.query.filter_by(user_id=current_user.id).first()
+        first_expense_item = ExpenseItem.query.filter_by(user_id=current_user.id).first()
+
+        if not first_revenue_category or not first_expense_item:
+            flash('Erro: Você precisa de pelo menos uma Categoria de Receita e um Item de Despesa cadastrados para realizar uma transferência interna.', 'danger')
+            return redirect(url_for('financeiro.wallets'))
+            
+        try:
+            expense_tx = Expense(
+                description=f"[TRANSFERÊNCIA] Saída p/ {target_wallet.name}",
+                amount=amount,
+                date=date.today(),
+                due_date=date.today(),
+                is_paid=True,
+                payment_date=datetime.utcnow(), 
+                is_recurrent=False,
+                item_id=first_expense_item.id,
+                user_id=current_user.id,
+                wallet_id=source_wallet.id
+            )
+            db.session.add(expense_tx)
+
+            revenue_tx = RevenueTransaction(
+                description=f"[TRANSFERÊNCIA] Entrada de {source_wallet.name}",
+                amount=amount,
+                date=date.today(),
+                due_date=date.today(),
+                is_received=True,
+                receipt_date=datetime.utcnow(),
+                type='R',
+                user_id=current_user.id,
+                wallet_id=target_wallet.id,
+                category_id=first_revenue_category.id
+            )
+            db.session.add(revenue_tx)
+            
+            db.session.commit()
+            flash(f'Transferência de R$ {amount:.2f} de {source_wallet.name} para {target_wallet.name} realizada com sucesso!', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao realizar a transferência: {e}', 'danger')
+            
+    else:
+        flash_form_errors(form)
+    
+    return redirect(url_for('financeiro.wallets'))
 
 @financeiro_bp.route('/carteiras/add', methods=['POST'])
 @login_required
@@ -108,9 +175,7 @@ def delete_wallet(wallet_id):
 @financeiro_bp.route('/categorias-receita')
 @login_required
 def revenue_categories():
-    categories = RevenueCategory.query.filter_by(user_id=current_user.id).order_by(RevenueCategory.name).all()
-    form = RevenueCategoryForm()
-    return render_template('financeiro/categories.html', categories=categories, form=form, title='Categorias de Receita', **footer)
+    return redirect(url_for('financeiro.categories_config'))
 
 @financeiro_bp.route('/categorias-receita/add', methods=['POST'])
 @login_required
@@ -128,7 +193,7 @@ def add_revenue_category():
     else:
         flash_form_errors(form)
     
-    return redirect(url_for('financeiro.revenue_categories'))
+    return redirect(url_for('financeiro.categories_config'))
 
 @financeiro_bp.route('/categorias-receita/manage', defaults={'category_id': None}, methods=['POST'])
 @financeiro_bp.route('/categorias-receita/manage/<int:category_id>', methods=['POST'])
@@ -173,25 +238,33 @@ def delete_revenue_category(category_id):
     db.session.commit()
     flash('Categoria de Receita excluída com sucesso!', 'info')
 
-    return redirect(url_for('financeiro.revenue_categories'))
+    return redirect(url_for('financeiro.categories_config'))
     
 @financeiro_bp.route('/configuracao-despesa')
 @login_required
 def expense_config():
-    """Gerencia grupos e itens de despesa."""
+    return redirect(url_for('financeiro.categories_config'))
+
+@financeiro_bp.route('/configuracao-categorias')
+@login_required
+def categories_config():
+    categories = RevenueCategory.query.filter_by(user_id=current_user.id).order_by(RevenueCategory.name).all()
+
     groups = ExpenseGroup.query.filter_by(user_id=current_user.id).order_by(ExpenseGroup.name).all()
-    # Adicionando o join para ordenação mais lógica
     items = ExpenseItem.query.join(ExpenseGroup).filter(ExpenseItem.user_id == current_user.id).order_by(ExpenseGroup.name, ExpenseItem.name).all()
 
+    form_revenue = RevenueCategoryForm()
     form_group = ExpenseGroupForm()
     form_item = ExpenseItemForm()
     
-    return render_template('financeiro/expense_config.html',
+    return render_template('financeiro/categories_config.html',
+                           categories=categories,
                            groups=groups,
                            items=items,
+                           form_revenue=form_revenue,
                            form_group=form_group,
                            form_item=form_item,
-                           title='Configuração de Despesas',
+                           title='Configuração de Categorias',
                            **footer)
 
 @financeiro_bp.route('/configuracao-despesa/group/add', methods=['POST'])
@@ -208,13 +281,12 @@ def add_expense_group():
         flash('Grupo de Despesa adicionado com sucesso!', 'success')
     else:
         flash_form_errors(form)
-    return redirect(url_for('financeiro.expense_config'))
+    return redirect(url_for('financeiro.categories_config'))
 
 @financeiro_bp.route('/configuracao-despesa/item/add', methods=['POST'])
 @login_required
 def add_expense_item():
     form = ExpenseItemForm()
-    # Força a query para o QuerySelectField para garantir que a validação funcione
     form.group.query_factory = lambda: ExpenseGroup.query.filter_by(user_id=current_user.id).order_by(ExpenseGroup.name).all()
 
     if form.validate_on_submit():
@@ -228,9 +300,8 @@ def add_expense_item():
         flash('Item de Despesa adicionado com sucesso!', 'success')
     else:
         flash_form_errors(form)
-    return redirect(url_for('financeiro.expense_config'))
+    return redirect(url_for('financeiro.categories_config'))
 
-# Rotas de DELETE para a hierarquia de despesa (Simplificado)
 @financeiro_bp.route('/configuracao-despesa/group/delete/<int:group_id>', methods=['POST'])
 @login_required
 def delete_expense_group(group_id):
@@ -244,7 +315,7 @@ def delete_expense_group(group_id):
     db.session.delete(group)
     db.session.commit()
     flash('Grupo de Despesa excluído com sucesso!', 'info')
-    return redirect(url_for('financeiro.expense_config'))
+    return redirect(url_for('financeiro.categories_config'))
 
 @financeiro_bp.route('/configuracao-despesa/item/delete/<int:item_id>', methods=['POST'])
 @login_required
@@ -259,7 +330,7 @@ def delete_expense_item(item_id):
     db.session.delete(item)
     db.session.commit()
     flash('Item de Despesa excluído com sucesso!', 'info')
-    return redirect(url_for('financeiro.expense_config'))
+    return redirect(url_for('financeiro.categories_config'))
 
 @financeiro_bp.route('/transacoes')
 @login_required
@@ -367,18 +438,33 @@ def add_revenue():
         return redirect(url_for('financeiro.revenue_categories'))
         
     if form.validate_on_submit():
-        is_received = (form.status.data == 'received')
         
+        try:
+            num_repetitions = int(form.num_repetitions.data)
+        except ValueError:
+            num_repetitions = 0
+            
+        is_recurrent_flag = form.is_recurrent.data and num_repetitions == 0
+        frequency = form.frequency.data
+        frequency_for_template = form.frequency.data if is_recurrent_flag else None
+        
+        if num_repetitions > 0:
+            is_received = False
+            receipt_date = None
+        else:
+            is_received = (form.status.data == 'received')
+            receipt_date = datetime.combine(form.receipt_date.data, datetime.min.time()) if is_received and form.receipt_date.data else None
+            
         revenue = RevenueTransaction(
             description=form.description.data,
             amount=form.amount.data,
             date=form.date.data,
             due_date=form.due_date.data,
             is_received=is_received,
-            receipt_date=datetime.combine(form.receipt_date.data, datetime.min.time()) if is_received and form.receipt_date.data else None,
+            receipt_date=receipt_date,
             
-            is_recurrent=form.is_recurrent.data,
-            frequency=form.frequency.data if form.is_recurrent.data else None,
+            is_recurrent=is_recurrent_flag,
+            frequency=frequency_for_template,
             
             type='R',
             user_id=current_user.id,
@@ -386,9 +472,48 @@ def add_revenue():
             category_id=form.category.data.id
         )
         db.session.add(revenue)
+
+        if num_repetitions > 0:
+            if not frequency or frequency == '':
+                 flash('A frequência é obrigatória para repetições em massa.', 'danger')
+                 db.session.rollback()
+                 return redirect(url_for('financeiro.add_revenue'))
+                 
+            current_due_date = form.due_date.data
+            for _ in range(num_repetitions):
+                current_due_date = calculate_next_date(current_due_date, frequency)
+                
+                new_revenue = RevenueTransaction(
+                    description=form.description.data,
+                    amount=form.amount.data,
+                    date=form.date.data, 
+                    due_date=current_due_date,
+                    is_received=False, 
+                    receipt_date=None, 
+                    
+                    is_recurrent=False, 
+                    frequency=None,
+                    
+                    type='R',
+                    user_id=current_user.id,
+                    wallet_id=form.wallet.data.id,
+                    category_id=form.category.data.id
+                )
+                db.session.add(new_revenue)
+            
+            db.session.commit()
+            total_lancamentos = num_repetitions + 1
+            msg = f'Receita registrada e mais {num_repetitions} lançamentos futuros criados (Total: {total_lancamentos}).'
+            flash(msg, 'success')
+            return redirect(url_for('financeiro.revenues'))
+        
         db.session.commit()
         
-        msg = 'Receita registrada como RECEBIDA com sucesso!' if is_received else 'Receita registrada como A RECEBER com sucesso!'
+        if is_recurrent_flag:
+            msg = 'Receita registrada como template de recorrência contínua (agendada) com sucesso! Ela será repetida automaticamente.'
+        else:
+            msg = 'Receita registrada como RECEBIDA com sucesso!' if is_received else 'Receita registrada como A RECEBER com sucesso!'
+            
         flash(msg, 'success')
         return redirect(url_for('financeiro.revenues'))
     
@@ -485,7 +610,37 @@ def expenses():
     
     now_date = date.today()
     
-    base_query = Expense.query.filter_by(user_id=current_user.id) 
+    base_query = Expense.query.filter_by(user_id=current_user.id)
+
+    desc_filter = request.args.get('desc_filter')
+    item_filter_id = request.args.get('item_filter', type=int)
+    recurrency_filter = request.args.get('recurrency_filter')
+    date_start = request.args.get('date_start')
+    date_end = request.args.get('date_end')
+    
+    filters = []
+
+    if desc_filter:
+        filters.append(Expense.description.ilike(f'%{desc_filter}%'))
+    
+    if item_filter_id:
+        filters.append(Expense.item_id == item_filter_id)
+        
+    if recurrency_filter and recurrency_filter == 'Isolada':
+        filters.append(Expense.is_recurrent == False)
+    elif recurrency_filter and recurrency_filter == 'Recorrente':
+        filters.append(Expense.is_recurrent == True)
+    elif recurrency_filter:
+        filters.append(Expense.frequency == recurrency_filter)
+        
+    if date_start:
+        filters.append(Expense.due_date >= datetime.strptime(date_start, '%Y-%m-%d').date())
+        
+    if date_end:
+        filters.append(Expense.due_date <= datetime.strptime(date_end, '%Y-%m-%d').date())
+
+    if filters:
+        base_query = base_query.filter(and_(*filters))
 
     total_paid_query = db.session.scalar(
         db.select(func.coalesce(func.sum(Expense.amount), Decimal(0))).where(
@@ -512,6 +667,11 @@ def expenses():
                                    .paginate(page=page, per_page=per_page, error_out=False)
     
     paid_expenses = paid_pagination.items
+
+    expense_items = ExpenseItem.query.filter_by(user_id=current_user.id) \
+                                     .order_by(ExpenseItem.name) \
+                                     .all()
+    expense_item_choices = [(item.id, item.name) for item in expense_items]
     
     form = ExpenseForm()
     frequency_choices = {key: label for key, label in form.frequency.choices if key} 
@@ -525,6 +685,12 @@ def expenses():
                            frequency_choices=frequency_choices,
                            title='Minhas Despesas', 
                            now_date=now_date,
+                           expense_item_choices=expense_item_choices,
+                           desc_filter=desc_filter,
+                           item_filter_id=item_filter_id,
+                           recurrency_filter=recurrency_filter,
+                           date_start=date_start,
+                           date_end=date_end,
                            **footer)
 
 @financeiro_bp.route('/despesas/add', methods=['GET', 'POST'])

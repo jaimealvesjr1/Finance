@@ -26,15 +26,15 @@
 </div>
 
 <div class="row mb-4 g-3">
-    <div class="col-lg-10">
+    <div class="col-lg-9">
         <div class="card border-0 shadow-sm bg-light">
             <div class="card-body py-3">
                 <form method="GET" action="{{ url_for('financeiro.expenses') }}" class="row g-2 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="small text-muted fw-bold">Descrição</label>
                         <input type="text" name="desc_filter" class="form-control form-select-sm" placeholder="Buscar..." value="{{ desc_filter if desc_filter }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="small text-muted fw-bold">Item de Despesa</label>
                         <select name="item_filter" class="form-select form-select-sm" id="expense_item_filter_select2">
                              <option value="">Todos os Itens</option>
@@ -43,26 +43,14 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-2">
-                         <label class="small text-muted fw-bold">Recorrência</label>
-                        <select name="recurrency_filter" class="form-select form-select-sm" id="recorrencia_filtro_select2">
-                             <option value="">Toda Recorrência</option>
-                             <option value="Isolada" {% if recurrency_filter == 'Isolada' %}selected{% endif %}>Isolada</option>
-                             <option value="Recorrente" {% if recurrency_filter == 'Recorrente' %}selected{% endif %}>Recorrente (Geral)</option>
-                             <option value="daily" {% if recurrency_filter == 'daily' %}selected{% endif %}>Diária</option>
-                             <option value="weekly" {% if recurrency_filter == 'weekly' %}selected{% endif %}>Semanal</option>
-                             <option value="monthly" {% if recurrency_filter == 'monthly' %}selected{% endif %}>Mensal</option>
-                             <option value="yearly" {% if recurrency_filter == 'yearly' %}selected{% endif %}>Anual</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-10">
                         <label class="small text-muted fw-bold">Período (De / Até)</label>
                         <div class="input-group input-group-sm">
                             <input type="date" name="date_start" class="form-control" value="{{ date_start if date_start }}">
                             <input type="date" name="date_end" class="form-control" value="{{ date_end if date_end }}">
                         </div>
                     </div>
-                    <div class="col-md-1">
+                    <div class="col-md-2">
                         <button type="submit" class="btn btn-primary btn-sm w-100">
                             Filtrar
                         </button>
@@ -77,8 +65,7 @@
         </div>
     </div>
 
-    <div class="col-lg-2">
-        {# CARD DE SÚMULA QUE MUDA DE COR #}
+    <div class="col-lg-3">
         <div id="card-total" class="card border-0 shadow-sm bg-danger text-white h-100 d-flex justify-content-center align-items-center text-center p-2 transition-colors"
              data-total-pagas="{{ total_pagas_valor | currency }}"
              data-total-pendentes="{{ total_pendentes_valor | currency }}">
@@ -112,9 +99,9 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small text-muted">
                         <tr>
-                            <th class="ps-4 py-3 border-0">Data Pagto</th>
+                            <th class="text-center border-0">Pagamento</th>
                             <th class="border-0">Descrição</th>
-                            <th class="border-0">Item / Grupo</th>
+                            <th class="border-0">Categoria</th>
                             <th class="border-0">Carteira</th>
                             <th class="text-end border-0">Valor</th>
                             <th class="text-center pe-4 border-0" style="width: 100px;">Ações</th>
@@ -123,19 +110,19 @@
                     <tbody>
                         {% for t in paid_expenses %}
                         <tr class="bg-white border-bottom">
-                            <td class="ps-4 font-monospace">{{ t.payment_date.strftime('%d/%m/%Y') }}</td>
-                            <td><span class="fw-bold text-dark">{{ t.description }}</span></td>
-                            <td>
+                            <td class="ps-4 font-monospace py-2">{{ t.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="py-2"><span class="fw-bold text-dark">{{ t.description }}</span></td>
+                            <td class="py-2">
                                 <span class="fw-bold text-dark">{{ t.item.name }}</span>
-                                <small class="text-muted d-block">{{ t.item.group.name }}</small>
+                                <small class="d-block text-muted">{{ t.item.group.name }}</small>
                             </td>
-                            <td>
+                            <td class="py-2">
                                 <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
                             </td>
-                            <td class="text-end fw-bold text-danger font-monospace">
+                            <td class="text-end fw-bold text-danger font-monospace py-2">
                                 - {{ t.amount | currency }}
                             </td>
-                            <td class="text-center pe-4">
+                            <td class="text-center pe-4 py-2">
                                 <a href="{{ url_for('financeiro.edit_expense', expense_id=t.id) }}" class="btn btn-sm btn-link text-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
                                 <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir">
                                     <i class="bi bi-trash"></i>
@@ -150,11 +137,9 @@
             </div>
         </div>
         
-        {# CORREÇÃO AQUI: Usa 'pagination' que é a variável passada pela view function #}
         {{ render_pagination(pagination, 'financeiro.expenses') }}
     </div>
 
-    {# AB B - DESPESAS A PAGAR #}
     <div class="tab-pane fade" id="apagar-content" role="tabpanel">
         <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-3">
             <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
@@ -168,11 +153,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small text-muted">
                         <tr>
-                            <th class="ps-4 py-3 border-0">Vencimento</th>
+                            <th class="text-center border-0">Vencimento</th>
                             <th class="border-0">Descrição</th>
-                            <th class="border-0">Item / Grupo</th>
+                            <th class="border-0">Categoria</th>
                             <th class="border-0">Carteira</th>
-                            <th class="text-end border-0">Valor Previsto</th>
+                            <th class="text-end border-0">Valor</th>
                             <th class="text-center pe-4 border-0" style="min-width: 150px;">Ações</th>
                         </tr>
                     </thead>
@@ -193,26 +178,26 @@
                             {% endif %}
 
                         <tr class="{{ row_class }} border-bottom-light">
-                            <td class="ps-4 py-3 font-monospace {{ due_class }}">
+                            <td class="ps-4 py-2 font-monospace {{ due_class }}">
                                 {{ t.due_date.strftime('%d/%m/%Y') }}
                                 {% if dias_restantes < 0 %}
-                                    <br><span class="badge bg-danger">Atrasado {{ dias_restantes|abs }} dias</span>
+                                    <span class="badge bg-danger d-block mt-1">Atrasado {{ dias_restantes|abs }} dias</span>
                                 {% elif dias_restantes == 0 %}
-                                    <br><span class="badge bg-danger">Vence Hoje!</span>
+                                    <span class="badge bg-danger d-block mt-1">Vence Hoje!</span>
                                 {% endif %}
                             </td>
-                            <td><span class="fw-bold text-dark">{{ t.description }}</span></td>
-                            <td>
+                            <td class="py-2"><span class="fw-bold text-dark">{{ t.description }}</span></td>
+                            <td class="py-2">
                                 <span class="fw-bold text-dark">{{ t.item.name }}</span>
-                                <small class="text-muted d-block">{{ t.item.group.name }}</small>
+                                <small class="d-block text-muted">{{ t.item.group.name }}</small>
                             </td>
-                            <td>
+                            <td class="py-2">
                                 <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
                             </td>
-                            <td class="text-end fw-bold text-secondary font-monospace">
+                            <td class="text-end fw-bold text-secondary font-monospace py-2">
                                 - {{ t.amount | currency }}
                             </td>
-                            <td class="text-center pe-4">
+                            <td class="text-center pe-4 py-2">
                                 <form action="{{ url_for('financeiro.pay_expense', expense_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar pagamento desta conta?');">
                                     <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Pagar)">
                                         <i class="bi bi-check-lg"></i> Pagar

@@ -15,9 +15,9 @@
   --cor-texto-secundario: #6b7280; /* Cinza médio */
 
   /* Sidebar */
-  --sidebar-bg: #1f2937;         /* Gray 800 */
-  --sidebar-width: 260px;
-  --sidebar-text: #e5e7eb;       /* Gray 200 */
+  --sidebar-bg: #1f2937;
+  --sidebar-width: 210px;
+  --sidebar-text: #e5e7eb;
   --sidebar-hover: rgba(255, 255, 255, 0.1);
 
   /* Bordas e Sombras */
@@ -84,6 +84,7 @@ a {
 .main-content {
   flex-grow: 1;
   margin-left: var(--sidebar-width);
+  margin-right: 20px;
   padding-top: 2rem;
   background-color: var(--cor-fundo-body);
   min-height: 100vh;

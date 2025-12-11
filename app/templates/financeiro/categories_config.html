@@ -1,0 +1,137 @@
+{% extends "base/layout.html" %}
+{% from 'base/components/forms.html' import field %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1 fw-bold">Configuração de Categorias</h2>
+        <p class="text-muted mb-0">Gerencie Categorias de Receita e Estrutura de Despesas (Grupos e Itens).</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h5 class="fw-bold mb-0"><i class="bi bi-tags text-success me-2"></i>Categorias de Receita</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('financeiro.add_revenue_category') }}">
+                    {{ form_revenue.hidden_tag() }}
+                    {{ field(form_revenue.name, placeholder="Ex: Salário, Freelance, Investimentos") }}
+                    <button type="submit" class="btn btn-success w-100 mt-2">
+                        Salvar Categoria de Receita
+                    </button>
+                </form>
+                
+                <h6 class="mt-4 mb-3 text-muted">Categorias Cadastradas ({{ categories|length }})</h6>
+                <div class="list-group list-group-flush border-top">
+                    {% for category in categories %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                            <span class="fw-medium text-success">{{ category.name }} ({{ category.transactions.count() }} entradas)</span>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-link text-muted p-0 me-2" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ category.id }}" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="POST" action="{{ url_for('financeiro.delete_revenue_category', category_id=category.id) }}" onsubmit="return confirm('Tem certeza? A exclusão só é permitida se não houver transações ligadas.');" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {# CORREÇÃO APLICADA: Usa {% set %} para definir 'form' no contexto do include #}
+                        {% set form = form_revenue %} 
+                        {% include 'financeiro/category_modal.html' %}
+                        {% set form = none %}
+                    {% else %}
+                        <p class="text-muted small mt-2">Nenhuma categoria de Receita cadastrada.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {# Coluna de Estrutura de Despesa #}
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h5 class="fw-bold mb-0"><i class="bi bi-journal-text text-danger me-2"></i>Estrutura de Despesas</h5>
+            </div>
+            <div class="card-body">
+                 <ul class="nav nav-tabs" id="expenseTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="groups-tab" data-bs-toggle="tab" data-bs-target="#groups-content" type="button" role="tab">Grupos</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="items-tab" data-bs-toggle="tab" data-bs-target="#items-content" type="button" role="tab">Itens</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content border border-top-0 p-3 bg-light rounded-bottom" id="expenseTabsContent">
+                    
+                    {# TAB GRUPOS #}
+                    <div class="tab-pane fade show active" id="groups-content" role="tabpanel">
+                        <h6 class="text-muted fw-bold mt-2">Novo Grupo de Despesa</h6>
+                        <form method="POST" action="{{ url_for('financeiro.add_expense_group') }}">
+                            {{ form_group.hidden_tag() }}
+                            {{ field(form_group.name, placeholder="Ex: Moradia, Alimentação, Lazer") }}
+                            <button type="submit" class="btn btn-primary w-100 mt-2">Salvar Grupo</button>
+                        </form>
+
+                        <h6 class="mt-4 mb-3 text-muted">Grupos Cadastrados ({{ groups|length }})</h6>
+                        <div class="list-group list-group-flush border-top">
+                            {% for group in groups %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                                    <span class="fw-medium">{{ group.name }} ({{ group.items.count() }} itens)</span>
+                                    <form method="POST" action="{{ url_for('financeiro.delete_expense_group', group_id=group.id) }}" onsubmit="return confirm('Tem certeza? A exclusão só é permitida se não houver itens ligados.');">
+                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <p class="text-muted small mt-2">Nenhum grupo cadastrado.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    {# TAB ITENS #}
+                    <div class="tab-pane fade" id="items-content" role="tabpanel">
+                        <h6 class="text-muted fw-bold mt-2">Novo Item de Despesa</h6>
+                        <form method="POST" action="{{ url_for('financeiro.add_expense_item') }}">
+                            {{ form_item.hidden_tag() }}
+                            {{ field(form_item.group) }}
+                            {{ field(form_item.name, placeholder="Ex: Aluguel, Supermercado, Streaming") }}
+                            <button type="submit" class="btn btn-danger w-100 mt-2">Salvar Item</button>
+                        </form>
+
+                        <h6 class="mt-4 mb-3 text-muted">Itens Cadastrados ({{ items|length }})</h6>
+                        <div class="list-group list-group-flush border-top">
+                            {% for item in items %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                                    <div>
+                                        <span class="fw-medium">{{ item.name }}</span>
+                                        <small class="d-block text-muted">({{ item.group.name }})</small>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('financeiro.delete_expense_item', item_id=item.id) }}" onsubmit="return confirm('Tem certeza? A exclusão só é permitida se não houver despesas ligadas.');">
+                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <p class="text-muted small mt-2">Nenhum item cadastrado.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

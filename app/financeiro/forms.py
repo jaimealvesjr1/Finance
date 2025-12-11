@@ -97,6 +97,21 @@ class RevenueTransactionForm(FlaskForm):
     )
 
     is_recurrent = BooleanField('Transação Recorrente?')
+    num_repetitions = SelectField('Repetir Quantas Vezes?', choices=[
+        ('0', 'Apenas este lançamento'),
+        ('1', '1 vez'),
+        ('2', '2 vezes'), 
+        ('3', '3 vezes'), 
+        ('4', '4 vezes'), 
+        ('5', '5 vezes'),
+        ('6', '6 vezes'),
+        ('7', '7 vezes'),
+        ('8', '8 vezes'),
+        ('9', '9 vezes'),
+        ('10', '10 vezes'),
+        ('11', '11 vezes')
+    ], default='0', validators=[Optional()])
+
     frequency = SelectField('Frequência de Recorrência', choices=[
         ('', 'Não Recorrente'),
         ('daily', 'Diária'), 
@@ -108,6 +123,14 @@ class RevenueTransactionForm(FlaskForm):
     submit = SubmitField('Registrar Receita')
     
     def validate_receipt_date(self, field):
+        try:
+            num_repetitions = int(self.num_repetitions.data)
+        except:
+            num_repetitions = 0
+
+        if num_repetitions > 0:
+            return 
+            
         if self.status.data == 'received':
             if not field.data:
                  raise ValidationError('A data de recebimento é obrigatória para receitas recebidas.')
@@ -170,8 +193,7 @@ class ExpenseForm(FlaskForm):
         ('8', '8 vezes'),
         ('9', '9 vezes'),
         ('10', '10 vezes'),
-        ('11', '11 vezes'),
-        ('12', '12 vezes') 
+        ('11', '11 vezes')
     ], default='0', validators=[Optional()])
     
     frequency = SelectField('Frequência de Recorrência', choices=[
@@ -194,3 +216,35 @@ class ExpenseForm(FlaskForm):
     def validate_due_date(self, field):
         if field.data < self.date.data:
             raise ValidationError('A data de vencimento não pode ser anterior à data de registro.')
+
+class TransferForm(FlaskForm):
+    """Formulário para transferências entre carteiras."""
+    amount = DecimalField('Valor da Transferência (R$)', validators=[
+        DataRequired(), 
+        NumberRange(min=0.01, message="O valor deve ser positivo.")
+    ])
+    
+    source_wallet = QuerySelectField(
+        'Carteira de Origem (Saída)',
+        query_factory=get_user_wallets,
+        get_pk=lambda a: a.id,
+        get_label=lambda a: a.name,
+        allow_blank=False,
+        validators=[DataRequired(message="Selecione a carteira de onde o valor sairá.")]
+    )
+    
+    target_wallet = QuerySelectField(
+        'Carteira de Destino (Entrada)',
+        query_factory=get_user_wallets,
+        get_pk=lambda a: a.id,
+        get_label=lambda a: a.name,
+        allow_blank=False,
+        validators=[DataRequired(message="Selecione a carteira para onde o valor irá.")]
+    )
+    
+    submit = SubmitField('Confirmar Transferência')
+
+    def validate_target_wallet(self, target_wallet):
+        """Verifica se as carteiras de origem e destino são diferentes."""
+        if self.source_wallet.data and target_wallet.data and self.source_wallet.data.id == target_wallet.data.id:
+            raise ValidationError('A carteira de origem e a de destino devem ser diferentes.')

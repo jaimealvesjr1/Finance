@@ -9,7 +9,14 @@
     <div class="col-lg-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="mb-0 fw-bold text-dark">Carteiras Ativas</h4>
-            <span class="badge bg-light text-dark border">{{ wallets|length }} cadastradas</span>
+            <div>
+                {% if wallets|length >= 2 %}
+                    <button type="button" class="btn btn-outline-primary shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#transferModal" title="Transferir entre carteiras">
+                        <i class="bi bi-arrow-left-right me-2"></i>Transferir
+                    </button>
+                {% endif %}
+                <span class="badge bg-light text-dark border">{{ wallets|length }} cadastradas</span>
+            </div>
         </div>
         
         {% if wallets %}
@@ -90,4 +97,46 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="transferModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary"><i class="bi bi-arrow-left-right me-2"></i>Transferência Interna</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('financeiro.transfer') }}" id="transfer_form">
+                <div class="modal-body pt-4">
+                    {{ form_transfer.hidden_tag() }}
+                    <p class="text-muted small">Mova valores entre suas contas (Carteiras). Uma despesa será criada na origem e uma receita no destino.</p>
+                    
+                    {{ field(form_transfer.amount, placeholder="Ex: 100.00") }}
+                    {{ field(form_transfer.source_wallet) }}
+                    {{ field(form_transfer.target_wallet) }}
+                    
+                    <small class="text-danger">Atenção: A transferência é registrada na data de hoje e afeta o saldo imediatamente.</small>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Confirmar Transferência</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    if ($('#transferModal').length) {
+        $('#transfer_form').find('select').select2({
+            theme: "bootstrap-5",
+            width: '100%',
+            dropdownParent: $('#transferModal')
+        });
+    }
+});
+</script>
 {% endblock %}

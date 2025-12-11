@@ -20,15 +20,15 @@
 </div>
 
 <div class="row mb-4 g-3">
-    <div class="col-lg-10">
+    <div class="col-lg-9">
         <div class="card border-0 shadow-sm bg-light">
             <div class="card-body py-3">
                 <form method="GET" action="{{ url_for('financeiro.revenues') }}" class="row g-2 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="small text-muted fw-bold">Descrição</label>
                         <input type="text" name="desc_filter" class="form-control form-select-sm" placeholder="Buscar..." value="{{ desc_filter if desc_filter }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="small text-muted fw-bold">Categoria</label>
                         <select name="category_filter" class="form-select form-select-sm" id="revenue_category_filter_select2">
                             <option value="">Todas as Categorias</option>
@@ -37,7 +37,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-10">
                         <label class="small text-muted fw-bold">Período (De / Até)</label>
                         <div class="input-group input-group-sm">
                             <input type="date" name="date_start" class="form-control" value="{{ date_start if date_start }}">
@@ -59,7 +59,7 @@
         </div>
     </div>
     
-    <div class="col-lg-2">
+    <div class="col-lg-3">
         <div id="card-total" class="card border-0 shadow-sm bg-success text-white h-100 d-flex justify-content-center align-items-center text-center p-2 transition-colors"
              data-total-received="{{ total_received_amount | currency }}"
              data-total-receivable="{{ total_receivable_amount | currency }}">
@@ -86,17 +86,16 @@
 
 <div class="tab-content" id="revenuesTabsContent">
     
-    {# AB A - RECEITAS RECEBIDAS (PAGINADAS) #}
     <div class="tab-pane fade show active" id="received-content" role="tabpanel">
         <div class="card border-0 shadow-sm rounded-4">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small text-muted">
                         <tr>
-                            <th class="ps-4 py-3 border-0" style="width: 12%;">Data Recebimento</th>
-                            <th class="border-0" style="width: 30%;">Descrição</th>
+                            <th class="text-center border-0" style="width: 12%;">Recebimento</th>
+                            <th class="text-center border-0" style="width: 30%;">Descrição</th>
                             <th class="border-0" style="width: 15%;">Carteira</th>
-                            <th class="border-0" style="width: 25%;">Categoria</th>
+                            <th class="border-0" style="width: 10%;">Categoria</th>
                             <th class="text-end border-0" style="width: 10%;">Valor</th>
                             <th class="text-center pe-4 border-0" style="width: 8%;">Ações</th>
                         </tr>
@@ -109,7 +108,7 @@
                             <td><span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span></td>
                             <td><span class="badge bg-light text-success border fw-normal rounded-pill px-3">{{ t.category.name }}</span></td>
                             <td class="text-end fw-bold text-success">+ {{ t.amount | currency }}</td>
-                            <td class="text-center pe-4">
+                            <td class="text-center pe-4 py-2">
                                 <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-link text-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
                                 <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i></button>
                             </td>
@@ -125,7 +124,6 @@
         {{ render_pagination(pagination, 'financeiro.revenues') }}
     </div>
 
-    {# AB B - RECEITAS A RECEBER (PENDENTES) #}
     <div class="tab-pane fade" id="receivable-content" role="tabpanel">
         <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-3">
             <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
@@ -139,11 +137,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small text-muted">
                         <tr>
-                            <th class="ps-4 py-3 border-0" style="width: 12%;">Vencimento</th>
-                            <th class="border-0" style="width: 30%;">Descrição</th>
+                            <th class="text-center border-0" style="width: 12%;">Vencimento</th>
+                            <th class="border-0">Descrição</th>
                             <th class="border-0" style="width: 15%;">Carteira</th>
-                            <th class="border-0" style="width: 25%;">Categoria</th>
-                            <th class="text-end border-0" style="width: 10%;">Valor Previsto</th>
+                            <th class="border-0" style="width: 10%;">Categoria</th>
+                            <th class="text-end border-0" style="width: 10%;">Valor</th>
                             <th class="text-center pe-4 border-0" style="min-width: 150px;">Ações</th>
                         </tr>
                     </thead>
@@ -163,19 +161,19 @@
                             {% endif %}
 
                         <tr class="{{ row_class }} border-bottom-light">
-                            <td class="ps-4 py-3 font-monospace {{ due_class }}">
+                            <td class="ps-4 py-2 font-monospace {{ due_class }}">
                                 {{ t.due_date.strftime('%d/%m/%Y') }}
                                 {% if dias_restantes < 0 %}
-                                    <br><span class="badge bg-danger">Atrasado {{ dias_restantes|abs }} dias</span>
+                                    <span class="badge bg-danger d-block mt-1">Atrasado {{ dias_restantes|abs }} dias</span>
                                 {% elif dias_restantes == 0 %}
-                                    <br><span class="badge bg-danger">Vence Hoje!</span>
+                                    <span class="badge bg-danger d-block mt-1">Vence Hoje!</span>
                                 {% endif %}
                             </td>
-                            <td><span class="fw-bold text-dark">{{ t.description }}</span></td>
-                            <td><span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span></td>
-                            <td><span class="badge bg-light text-success border fw-normal rounded-pill px-3">{{ t.category.name }}</span></td>
-                            <td class="text-end fw-bold text-secondary font-monospace">+ {{ t.amount | currency }}</td>
-                            <td class="text-center pe-4">
+                            <td class="py-2"><span class="fw-bold text-dark">{{ t.description }}</span></td>
+                            <td class="py-2"><span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span></td>
+                            <td class="py-2"><span class="badge bg-light text-success border fw-normal rounded-pill px-3">{{ t.category.name }}</span></td>
+                            <td class="text-end fw-bold text-secondary font-monospace py-2">+ {{ t.amount | currency }}</td>
+                            <td class="text-center pe-4 py-2">
                                 <form action="{{ url_for('financeiro.mark_as_received', revenue_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar recebimento desta receita?');">
                                     <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Receber)">
                                         <i class="bi bi-check-lg"></i> Receber

@@ -28,13 +28,8 @@
             </a>
         </li>
         <li>
-            <a href="{{ url_for('financeiro.revenue_categories') }}" class="nav-link text-white {% if 'categories' in request.endpoint %}active{% endif %}">
-                <i class="bi bi-tags me-2"></i> Categorias de Receita
-            </a>
-        </li>
-        <li>
-            <a href="{{ url_for('financeiro.expense_config') }}" class="nav-link text-white {% if 'expense_config' in request.endpoint %}active{% endif %}">
-                <i class="bi bi-gear me-2"></i> Categorias de Despesa
+            <a href="{{ url_for('financeiro.categories_config') }}" class="nav-link text-white {% if 'categories_config' in request.endpoint or 'categories' in request.endpoint or 'expense_config' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-gear me-2"></i> Configurações
             </a>
         </li>
     </ul>
