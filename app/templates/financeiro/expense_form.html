@@ -9,63 +9,76 @@
     <div class="col-lg-8">
         <div class="card border-0 shadow-lg rounded-4">
             <div class="card-header bg-white border-0 pt-4 pb-0 text-center">
-                <h3 class="fw-bold {{ 'text-warning' if is_edit else 'text-success' }}">
-                    {{ title }}
+                <h3 class="fw-bold {{ 'text-warning' if is_edit else 'text-danger' }}">
+                    {{ title }} (Despesa)
                 </h3>
             </div>
             <div class="card-body p-5">
                 {% if is_edit %}
-                    {% set form_action = url_for('financeiro.edit_transaction', transaction_id=transaction_id) %}
+                    {% set form_action = url_for('financeiro.edit_expense', expense_id=expense_id) %}
                     {% set btn_class = 'btn-warning text-white' %}
                 {% else %}
-                    {% set form_action = url_for('financeiro.add_transaction') %}
-                    {% set btn_class = 'btn-success' %}
+                    {% set form_action = url_for('financeiro.add_expense') %}
+                    {% set btn_class = 'btn-danger' %}
                 {% endif %}
 
-                <form method="POST" action="{{ form_action }}">
+                <form method="POST" action="{{ form_action }}" id="expense_form">
                     {{ form.hidden_tag() }}
 
                     <div class="row">
                         <div class="col-md-8">
-                            {{ field(form.description, placeholder="Ex: Compras da Semana") }}
+                            {{ field(form.description, placeholder="Ex: Pagamento Aluguel, Conta de Luz") }}
                         </div>
                         <div class="col-md-4">
-                            {{ field(form.date) }}
+                            {{ field(form.amount, placeholder="0.00", class="form-control form-control-lg fw-bold text-end") }}
                         </div>
                     </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                             {{ field(form.amount, placeholder="0.00", class="form-control form-control-lg fw-bold text-end") }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ field(form.type) }}
-                        </div>
-                    </div>
-
+                    
                     <div class="row mt-2">
+                        <div class="col-md-6">
+                            {{ field(form.item) }}
+                        </div>
                         <div class="col-md-6">
                             {{ field(form.wallet) }}
                         </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h5 class="fw-bold text-muted mb-3">Fluxo de Caixa e Status</h5>
+                    
+                    <div class="row">
                         <div class="col-md-6">
-                            {{ field(form.category) }}
+                            {{ field(form.status, id="status_field") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ field(form.due_date) }}
                         </div>
                     </div>
+                    
+                    <div class="row" id="payment_dates_row">
+                        <div class="col-md-6">
+                            {{ field(form.date, label="Data de Registro/Competência") }}
+                        </div>
+                        <div class="col-md-6" id="payment_date_div">
+                             {{ field(form.payment_date) }}
+                        </div>
+                    </div>
+
 
                     <div class="bg-light p-3 rounded mt-4 mb-4">
                         <div class="form-check form-switch">
                             {{ form.is_recurrent(class="form-check-input", id="is_recurrent_check") }}
                             <label class="form-check-label fw-bold" for="is_recurrent_check">
-                                Repetir esta transação?
+                                Repetir esta despesa?
                             </label>
                         </div>
                         <div class="mt-3" id="frequency_field" style="display: none;">
                             {{ field(form.frequency) }}
                         </div>
                     </div>
-
+                    
                     <div class="d-flex gap-2">
-                        {{ submit('Salvar', class=btn_class + " flex-grow-1") }}
+                        {{ submit('Salvar Despesa', class=btn_class + " flex-grow-1") }}
                         
                         {% if is_edit %}
                         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
@@ -76,7 +89,7 @@
                 </form>
                 
                 <div class="text-center mt-3">
-                    <a href="{{ url_for('financeiro.transactions') }}" class="text-muted text-decoration-none small">Cancelar e Voltar</a>
+                    <a href="{{ url_for('financeiro.expenses') }}" class="text-muted text-decoration-none small">Cancelar e Voltar</a>
                 </div>
             </div>
         </div>
@@ -88,7 +101,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Excluir Transação</h5>
+                <h5 class="modal-title">Excluir Despesa</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -96,7 +109,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="POST" action="{{ url_for('financeiro.delete_transaction', transaction_id=transaction_id) }}">
+                <form method="POST" action="{{ url_for('financeiro.delete_expense', expense_id=expense_id) }}">
                     <button type="submit" class="btn btn-danger">Sim, Excluir</button>
                 </form>
             </div>
@@ -106,12 +119,29 @@
 {% endif %}
 
 <script>
-// Pequeno script inline para toggle da recorrência
+// Toggle da recorrência
 document.addEventListener('DOMContentLoaded', function() {
     const check = document.getElementById('is_recurrent_check');
     const freqDiv = document.getElementById('frequency_field');
-    function toggle() { freqDiv.style.display = check.checked ? 'block' : 'none'; }
-    if(check) { check.addEventListener('change', toggle); toggle(); }
+    const statusField = document.getElementById('status_field');
+    const paymentDateDiv = document.getElementById('payment_date_div');
+
+    function toggleRecurrence() { freqDiv.style.display = check.checked ? 'block' : 'none'; }
+    function togglePaymentDate() {
+        const isPaid = statusField.value === 'paid';
+        if (paymentDateDiv) {
+            paymentDateDiv.style.display = isPaid ? 'block' : 'none';
+        }
+    }
+
+    if(check) { check.addEventListener('change', toggleRecurrence); toggleRecurrence(); }
+    if(statusField) { statusField.addEventListener('change', togglePaymentDate); togglePaymentDate(); }
+    
+    // Injeta a classe Select2 no campo de Item (para fins de UX/visual)
+    $('#item').select2({
+        theme: "bootstrap-5",
+        dropdownParent: $('#expense_form')
+    });
 });
 </script>
 {% endblock %}

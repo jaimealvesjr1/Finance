@@ -1,0 +1,296 @@
+{% extends "base/layout.html" %}
+{% from 'base/components/forms.html' import field %}
+{% from 'base/components/buttons.html' import primary %}
+{% from 'macros/pagination.html' import render_pagination %}
+{% from 'base/components/modals.html' import confirm_modal %}
+
+{% block title %}Gestão de Despesas{% endblock %}
+
+{% block content %}
+
+{# O CÁLCULO FOI MOVIDO PARA O PYTHON (ROUTES.PY) #}
+{% set total_pagas_valor = total_paid_amount %}
+{% set total_pendentes_valor = total_pending_amount %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary me-3" title="Voltar ao Painel">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h2 class="mb-0"><strong>Gestão de Despesas</strong></h2>
+    </div>
+    <div>
+        <a href="{{ url_for('financeiro.add_expense') }}" class="btn btn-danger shadow-sm">
+            <i class="bi bi-plus-lg me-2"></i>Nova Despesa
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4 g-3">
+    <div class="col-lg-10">
+        <div class="card border-0 shadow-sm bg-light">
+            <div class="card-body py-3">
+                {# FILTROS AQUI #}
+                <form method="GET" action="{{ url_for('financeiro.expenses') }}" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">Descrição</label>
+                        <input type="text" name="desc_filter" class="form-control form-select-sm" placeholder="Buscar...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">Item de Despesa</label>
+                        <select name="item_filter" class="form-select form-select-sm" id="expense_item_filter_select2"></select>
+                    </div>
+                    <div class="col-md-2">
+                         <label class="small text-muted fw-bold">Recorrência</label>
+                        <select name="recurrency_filter" class="form-select form-select-sm" id="recorrencia_filtro_select2"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted fw-bold">Período (De / Até)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="date" name="date_start" class="form-control">
+                            <input type="date" name="date_end" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            Filtrar
+                        </button>
+                    </div>
+                </form>
+                {% if request.args %}
+                <div class="mt-2 text-end">
+                    <a href="{{ url_for('financeiro.expenses') }}" class="small text-decoration-none text-secondary"><i class="bi bi-x-circle"></i> Limpar Filtros</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-2">
+        {# CARD DE SÚMULA QUE MUDA DE COR #}
+        <div id="card-total" class="card border-0 shadow-sm bg-danger text-white h-100 d-flex justify-content-center align-items-center text-center p-2 transition-colors"
+             data-total-pagas="{{ total_pagas_valor | currency }}"
+             data-total-pendentes="{{ total_pendentes_valor | currency }}">
+            <div>
+                <small id="label-total" class="text-uppercase opacity-75 fw-bold" style="font-size: 0.7rem;">Total Pago</small>
+                <div id="valor-total" class="h4 fw-bold mb-0 text-nowrap">{{ total_pagas_valor | currency }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="despesasTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pagas-tab" data-bs-toggle="tab" data-bs-target="#pagas-content" type="button" role="tab">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>Realizadas (Pagas)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="apagar-tab" data-bs-toggle="tab" data-bs-target="#apagar-content" type="button" role="tab">
+            <i class="bi bi-clock-history text-warning me-2"></i>A Pagar (Pendentes)
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="despesasTabsContent">
+    
+    {# AB A - DESPESAS PAGAS #}
+    <div class="tab-pane fade show active" id="pagas-content" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small text-muted">
+                        <tr>
+                            <th class="ps-4 py-3 border-0">Data Pagto</th>
+                            <th class="border-0">Descrição</th>
+                            <th class="border-0">Item / Grupo</th>
+                            <th class="border-0">Carteira</th>
+                            <th class="text-end border-0">Valor</th>
+                            <th class="text-center pe-4 border-0" style="width: 100px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in paid_expenses %}
+                        <tr class="bg-white border-bottom">
+                            <td class="ps-4 font-monospace">{{ t.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td><span class="fw-bold text-dark">{{ t.description }}</span></td>
+                            <td>
+                                <span class="fw-bold text-dark">{{ t.item.name }}</span>
+                                <small class="text-muted d-block">{{ t.item.group.name }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
+                            </td>
+                            <td class="text-end fw-bold text-danger font-monospace">
+                                - {{ t.amount | currency }}
+                            </td>
+                            <td class="text-center pe-4">
+                                <a href="{{ url_for('financeiro.edit_expense', expense_id=t.id) }}" class="btn btn-sm btn-link text-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma despesa paga encontrada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {# CORREÇÃO AQUI: Usa 'pagination' que é a variável passada pela view function #}
+        {{ render_pagination(pagination, 'financeiro.expenses') }}
+    </div>
+
+    {# AB B - DESPESAS A PAGAR #}
+    <div class="tab-pane fade" id="apagar-content" role="tabpanel">
+        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong>Atenção:</strong> Estes lançamentos são previsões e não afetam o saldo de caixa até serem baixados.
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small text-muted">
+                        <tr>
+                            <th class="ps-4 py-3 border-0">Vencimento</th>
+                            <th class="border-0">Descrição</th>
+                            <th class="border-0">Item / Grupo</th>
+                            <th class="border-0">Carteira</th>
+                            <th class="text-end border-0">Valor Previsto</th>
+                            <th class="text-center pe-4 border-0" style="min-width: 150px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in pending_expenses %}
+                            {# Estilização de Linha #}
+                            {% set dias_restantes = (t.due_date - now_date).days %}
+                            
+                            {% set row_class = "bg-white" %}
+                            {% set due_class = "text-warning" %}
+                            
+                            {% if dias_restantes < 0 %}
+                                {% set row_class = "bg-white border-start border-4 border-danger" %}
+                                {% set due_class = "text-danger" %}
+                            {% elif dias_restantes <= 7 %}
+                                {% set row_class = "table-warning-light" %}
+                                {% set due_class = "text-warning" %}
+                            {% endif %}
+
+                        <tr class="{{ row_class }} border-bottom-light">
+                            <td class="ps-4 py-3 font-monospace {{ due_class }}">
+                                {{ t.due_date.strftime('%d/%m/%Y') }}
+                                {% if dias_restantes < 0 %}
+                                    <br><span class="badge bg-danger">Atrasado {{ dias_restantes|abs }} dias</span>
+                                {% elif dias_restantes == 0 %}
+                                    <br><span class="badge bg-danger">Vence Hoje!</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="fw-bold text-dark">{{ t.description }}</span></td>
+                            <td>
+                                <span class="fw-bold text-dark">{{ t.item.name }}</span>
+                                <small class="text-muted d-block">{{ t.item.group.name }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
+                            </td>
+                            <td class="text-end fw-bold text-secondary font-monospace">
+                                - {{ t.amount | currency }}
+                            </td>
+                            <td class="text-center pe-4">
+                                <form action="{{ url_for('financeiro.pay_expense', expense_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar pagamento desta conta?');">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Pagar)">
+                                        <i class="bi bi-check-lg"></i> Pagar
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('financeiro.edit_expense', expense_id=t.id) }}" class="btn btn-sm btn-link text-secondary ms-1" title="Editar"><i class="bi bi-pencil"></i></a>
+                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma conta pendente encontrada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modals #}
+{% for t in paid_expenses + pending_expenses %}
+{{ confirm_modal(
+    id='confirmDeleteExpenseModal' ~ t.id,
+    title='Excluir Despesa',
+    body='Tem certeza que deseja excluir o lançamento de ' ~ t.description ~ ' no valor de ' ~ (t.amount | currency) ~ '? Essa ação é irreversível.',
+    action_url=url_for('financeiro.delete_expense', expense_id=t.id)
+) }}
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    const select2Config = {
+        theme: 'bootstrap-5',
+        width: '100%',
+        allowClear: true
+    };
+    
+    // Placeholder Select2 para filtros (devem ser populados no Python)
+    $('#expense_item_filter_select2').select2({ ...select2Config, placeholder: "Item de Despesa" });
+    $('#recorrencia_filtro_select2').select2({ ...select2Config, placeholder: "Recorrência", minimumResultsForSearch: Infinity });
+
+    // Lógica para alternar o card de total (copiado do anexo)
+    function atualizarCardTotal(abaAtiva) {
+        var cardTotal = $('#card-total');
+        var valorTotal = $('#valor-total');
+        var labelTotal = $('#label-total');
+        
+        if (abaAtiva === 'pagas-tab') {
+            cardTotal.removeClass('bg-warning text-dark').addClass('bg-danger text-white');
+            valorTotal.text(cardTotal.data('total-pagas'));
+            labelTotal.text('TOTAL PAGO');
+        } else if (abaAtiva === 'apagar-tab') {
+            cardTotal.removeClass('bg-danger text-white').addClass('bg-warning text-dark');
+            valorTotal.text(cardTotal.data('total-pendentes'));
+            labelTotal.text('TOTAL A PAGAR');
+        }
+    }
+    
+    // Lógica para alternar o PDF (copiado do anexo)
+    function atualizarLinkPDF(abaAtiva) {
+        var status = (abaAtiva === 'pagas-tab') ? 'pagas' : 'pendentes';
+        // Simulação de URLParams
+        var urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('status_relatorio', status);
+        
+        var novaUrl = "{{ url_for('financeiro.expenses') }}" + "?" + urlParams.toString(); // Rota deve ser para download_pdf
+        $('#btn-relatorio-pdf').attr('href', novaUrl);
+    }
+
+    // Inicializa a tab e o card
+    var activeTab = document.querySelector('#despesasTabs button.active');
+    if (activeTab) {
+        atualizarCardTotal(activeTab.id);
+        atualizarLinkPDF(activeTab.id);
+    }
+
+    var triggerTabList = [].slice.call(document.querySelectorAll('#despesasTabs button'))
+    triggerTabList.forEach(function (triggerEl) {
+        triggerEl.addEventListener('shown.bs.tab', function (event) {
+            atualizarCardTotal(event.target.id);
+            atualizarLinkPDF(event.target.id);
+        })
+    });
+});
+</script>
+{% endblock %}

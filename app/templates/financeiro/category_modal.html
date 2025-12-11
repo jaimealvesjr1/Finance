@@ -2,10 +2,10 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Editar Categoria</h5>
+                <h5 class="modal-title fw-bold">Editar Categoria de Receita</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('financeiro.manage_category', category_id=category.id) }}">
+            <form method="POST" action="{{ url_for('financeiro.manage_revenue_category', category_id=category.id) }}">
                 <div class="modal-body pt-4">
                     {{ form.hidden_tag() }}
 
@@ -13,13 +13,9 @@
                         <label class="form-label fw-bold">Nome</label>
                         <input type="text" class="form-control" name="name" value="{{ category.name }}" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Tipo</label>
-                        <select class="form-select" name="type" required>
-                            <option value="R" {% if category.type == 'R' %}selected{% endif %}>Receita (Entrada)</option>
-                            <option value="D" {% if category.type == 'D' %}selected{% endif %}>Despesa (Saída)</option>
-                        </select>
-                    </div>
+                    
+                    {# O campo 'type' foi removido pois esta categoria é exclusiva de Receita #}
+                    
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>

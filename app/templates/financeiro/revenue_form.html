@@ -1,0 +1,93 @@
+{% extends "base/layout.html" %}
+{% from 'base/components/forms.html' import field %}
+{% from 'base/components/buttons.html' import submit %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-lg rounded-4">
+            <div class="card-header bg-white border-0 pt-4 pb-0 text-center">
+                <h3 class="fw-bold {{ 'text-warning' if is_edit else 'text-success' }}">
+                    {{ title }} (Receita)
+                </h3>
+            </div>
+            <div class="card-body p-5">
+                {% if is_edit %}
+                    {% set form_action = url_for('financeiro.edit_revenue', revenue_id=transaction_id) %}
+                    {% set btn_class = 'btn-warning text-white' %}
+                {% else %}
+                    {% set form_action = url_for('financeiro.add_revenue') %}
+                    {% set btn_class = 'btn-success' %}
+                {% endif %}
+
+                <form method="POST" action="{{ form_action }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            {{ field(form.description, placeholder="Ex: Salário Mensal") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ field(form.date) }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                             {{ field(form.amount, placeholder="0.00", class="form-control form-control-lg fw-bold text-end") }}
+                        </div>
+                        <div class="col-md-6">
+                            {# O campo 'type' e 'is_recurrent' foram removidos #}
+                            {{ field(form.wallet) }}
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            {{ field(form.category) }}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        {{ submit('Salvar Receita', class=btn_class + " flex-grow-1") }}
+                        
+                        {% if is_edit %}
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('financeiro.revenues') }}" class="text-muted text-decoration-none small">Cancelar e Voltar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if is_edit %}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Excluir Receita</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Tem a certeza? Esta ação é irreversível.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('financeiro.delete_revenue', revenue_id=transaction_id) }}">
+                    <button type="submit" class="btn btn-danger">Sim, Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

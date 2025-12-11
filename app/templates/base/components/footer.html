@@ -3,16 +3,17 @@
         <div class="row align-items-center justify-content-between">
             <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
                 <p>
-                    &copy; {{ config.ANO_ATUAL }} <strong>Ascentia Finance</strong> · 
+                    &copy; {{ config.ANO_ATUAL }} · 
                     <span class="badge bg-light text-secondary border">{{ config.VERSAO_APP }}</span>
                 </p>
             </div>
             
             <div class="col-md-6 text-center text-md-end">
                 <p class="small">
-                    🚀 by <a href="#" target="_blank">Ascentia</a>
-                    <br>
-                    <em>Tecnologia com propósito!</em
+                    🚀 by
+                    <img src="{{ url_for('static', filename='img/icon_ascentia.png') }}" alt="Ascentia" style="height: 1em; vertical-align: middle; opacity: 0.6;">
+                    <strong>Ascentia</strong> · para <strong>IBAN - Igreja Batista às Nações</strong><br>
+                    <em>Tecnologia com propósito!</em>
                 </p>
             </div>
         </div>

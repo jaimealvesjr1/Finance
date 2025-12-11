@@ -1,56 +1,50 @@
-<nav class="sidebar-wrapper offcanvas-md offcanvas-start" tabindex="-1" id="sidebarOffcanvas">
-    <div class="sidebar-brand">
-        <i class="bi bi-graph-up-arrow"></i>
-        <span>Finance SaaS</span>
-    </div>
-
-    <div class="sidebar-menu">
-        <ul class="nav nav-pills flex-column">
-            <li class="nav-item">
-                <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">
-                    <i class="bi bi-speedometer2"></i> 
-                    <span>Dashboard</span>
-                </a>
-            </li>
-            
-            <li class="nav-header text-uppercase text-muted small fw-bold mt-3 mb-2 px-3">Finanças</li>
-            
-            <li class="nav-item">
-                <a href="{{ url_for('financeiro.transactions') }}" class="nav-link {% if 'transaction' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-list-ul"></i>
-                    <span>Movimentações</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('financeiro.wallets') }}" class="nav-link {% if 'wallet' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-wallet2"></i>
-                    <span>Carteiras</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('financeiro.categories') }}" class="nav-link {% if 'categor' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-tags"></i>
-                    <span>Categorias</span>
-                </a>
-            </li>
-        </ul>
-    </div>
-
-    <div class="sidebar-footer">
-        <div class="dropdown dropup"> <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle px-2" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-2 text-white fw-bold" style="width: 36px; height: 36px;">
-                    {{ current_user.username[0].upper() }}
-                </div>
-                <div class="d-flex flex-column">
-                    <strong class="small">{{ current_user.username }}</strong>
-                    <span class="text-muted" style="font-size: 0.7rem;">Plano Free</span>
-                </div>
+<nav class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark h-100">
+    
+    <a href="{{ url_for('main.index') }}" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+        <i class="bi bi-graph-up-arrow fs-4 me-2 text-success"></i>
+        <span class="fs-4 fw-bold">Finance</span>
+    </a>
+    <hr>
+    
+    <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+            <a href="{{ url_for('main.index') }}" class="nav-link text-white {% if request.endpoint == 'main.index' %}active{% endif %}">
+                <i class="bi bi-speedometer2 me-2"></i> Dashboard
             </a>
-            <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-                <li><a class="dropdown-item" href="#">Perfil</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">Sair</a></li>
-            </ul>
-        </div>
+        </li>
+        <li>
+            <a href="{{ url_for('financeiro.revenues') }}" class="nav-link text-white {% if 'revenue' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-arrow-up-circle me-2"></i> Receitas
+            </a>
+        </li>
+        <li>
+            <a href="{{ url_for('financeiro.expenses') }}" class="nav-link text-white {% if 'expense' in request.endpoint and 'config' not in request.endpoint %}active{% endif %}">
+                <i class="bi bi-arrow-down-circle me-2"></i> Despesas
+            </a>
+        </li>
+        <li>
+            <a href="{{ url_for('financeiro.wallets') }}" class="nav-link text-white {% if 'wallets' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-wallet2 me-2"></i> Carteiras
+            </a>
+        </li>
+        <li>
+            <a href="{{ url_for('financeiro.revenue_categories') }}" class="nav-link text-white {% if 'categories' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-tags me-2"></i> Categorias de Receita
+            </a>
+        </li>
+        <li>
+            <a href="{{ url_for('financeiro.expense_config') }}" class="nav-link text-white {% if 'expense_config' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-gear me-2"></i> Config. Despesas
+            </a>
+        </li>
+    </ul>
+    
+    <hr>
+    
+    {# SIMPLIFIED FOOTER - Only Logout Link #}
+    <div class="sidebar-footer p-0">
+        <a href="{{ url_for('auth.logout') }}" class="nav-link text-white px-3 py-2">
+            <i class="bi bi-door-open-fill me-2"></i> Encerrar Sessão
+        </a>
     </div>
 </nav>

@@ -2,6 +2,7 @@ from flask import Flask
 from config import Config
 from .extensions import db, login_manager, migrate, scheduler
 import os
+from decimal import Decimal
 
 from .auth import models as auth_models
 from .financeiro import models as financeiro_models
@@ -20,6 +21,16 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     scheduler.init_app(app)
+
+    @app.template_filter('currency')
+    def format_currency(value):
+        if value is None:
+            return 'R$ 0,00'
+        
+        if not isinstance(value, Decimal):
+            value = Decimal(str(value))
+        
+        return f"R$ {value:,.2f}".replace(",", "V").replace(".", ",").replace("V", ".")
 
     from flask import get_flashed_messages
     @app.context_processor

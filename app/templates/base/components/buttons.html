@@ -1,12 +1,21 @@
 {% macro _render_html_attributes(attributes) %}
+    {# Helper function to render HTML attributes #}
     {% for key, value in attributes.items() %}
         {{ key }}="{{ value }}"
     {% endfor %}
 {% endmacro %}
 
 {% macro primary(text, href='#', icon='', attrs={}) %}
-<a href="{{ href }}" class="btn btn-custom" {{ _render_html_attributes(attrs) }}>
-    {% if icon %}<i class="{{ icon }}"></i>{% endif %}{{ text }}
+{# O padrão é 'btn-primary', mas permite que classes como 'btn-success' ou 'btn-danger' sejam passadas #}
+{% set default_class = 'btn btn-primary' %}
+{% set final_class = default_class %}
+
+{% if 'class' in attrs %}
+    {% set final_class = 'btn ' ~ attrs.pop('class') %}
+{% endif %}
+
+<a href="{{ href }}" class="{{ final_class }}" {{ _render_html_attributes(attrs) }}>
+    {% if icon %}<i class="{{ icon }} me-2"></i>{% endif %}{{ text }}
 </a>
 {% endmacro %}
 
@@ -24,7 +33,8 @@
         {% set _ = final_attrs.update(attrs) %}
     {% endif %}
 
-    {% set btn_class = final_attrs.pop('class', 'btn-custom') %}
+    {# O padrão agora é btn-primary. Se o usuário passar 'class="btn-success"', ele substitui. #}
+    {% set btn_class = final_attrs.pop('class', 'btn-primary') %} 
     
     <button type="submit" class="btn {{ btn_class }}" {{ _render_html_attributes(final_attrs) }}>
         <strong>{{ text }}</strong>
