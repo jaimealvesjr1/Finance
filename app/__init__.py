@@ -45,20 +45,15 @@ def create_app(config_class=Config):
     
     @app.before_request
     def check_access_status():
-        from flask_login import current_user, logout_user
+        from flask_login import current_user
         from flask import url_for, redirect, flash, request
         
         if current_user.is_authenticated and request.endpoint and not request.blueprint in ['auth']:
             
-            if not current_user.is_active and not current_user.is_admin:
-                
-                if request.endpoint not in ['auth.profile', 'auth.logout']:
-                    flash('Seu acesso está suspenso. Renove sua assinatura na tela de perfil.', 'danger')
-                    return redirect(url_for('auth.profile'))
             
             if current_user.pending_message:
                 message = current_user.pending_message
-                flash(f'Mensagem do Administrador: {message}', 'warning')
+                flash(f'Mensagem do Administrador: {message}', 'info')
                 
                 current_user.pending_message = None 
                 db.session.commit()

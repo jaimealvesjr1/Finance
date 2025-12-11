@@ -32,6 +32,15 @@ class User(UserMixin, db.Model):
         """"Verifica se a senha fornecida corresponde ao hash."""
         return check_password_hash(self.password_hash, password)
     
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_functional_active(self): 
+        today = date.today()
+        return self.is_admin or (self.access_due_date and self.access_due_date >= today)
+    
     @hybrid_property
     def is_active(self):
         today = date.today()

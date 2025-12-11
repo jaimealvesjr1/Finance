@@ -83,10 +83,16 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
+        
         if user is None or not user.check_password(form.password.data):
             flash('Email ou senha inválidos. Tente novamente.', 'danger')
             return redirect(url_for('auth.login'))
         
+        if not user.is_functional_active:
+            due_date_str = user.access_due_date.strftime("%d/%m/%Y") if user.access_due_date else 'DATA INDEFINIDA'
+            flash(f'Seu acesso está suspenso desde {due_date_str}. Renove sua assinatura para acessar.', 'danger')
+            return redirect(url_for('auth.login'))
+
         login_user(user)
         flash(f'Bem-vindo(a) de volta, {user.username}!', 'success')
         return redirect(url_for('main.index'))
