@@ -67,23 +67,65 @@ a {
   color: var(--sidebar-text);
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  height: 100vh;
-  position: fixed; /* Fixa na esquerda */
+  position: fixed; /* Garante que fica fixa na janela */
   top: 0;
   left: 0;
+  bottom: 0; /* Força a ir até ao fim da janela */
   z-index: 1000;
   transition: transform 0.3s ease-in-out;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05); /* Sombra subtil à direita */
+}
+
+/* Scrollbar personalizada para a sidebar (Fica mais elegante) */
+.sidebar-menu::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-menu::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+}
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
 }
 
 /* Área de Conteúdo Principal */
 .main-content {
   flex-grow: 1;
-  margin-left: var(--sidebar-width); /* Espaço reservado para a sidebar */
-  padding: 2rem;
+  margin-left: var(--sidebar-width);
   background-color: var(--cor-fundo-body);
   min-height: 100vh;
+  display: flex;           /* Novo: Flexbox para empurrar o footer */
+  flex-direction: column;  /* Novo: Direção coluna */
   transition: margin-left 0.3s ease-in-out;
+}
+
+.main-content > .container-fluid {
+  flex: 1; /* Faz o conteúdo ocupar o espaço disponível, empurrando o footer */
+  padding-bottom: 2rem;
+}
+
+/* === NOVO ESTILO DO FOOTER (Rodapé Bonito) === */
+.footer-custom {
+  background-color: var(--cor-fundo-card);
+  border-top: 1px solid var(--borda-suave);
+  padding: 1.5rem 2rem;
+  margin-top: auto;
+}
+
+.footer-custom p {
+  margin: 0;
+  color: var(--cor-texto-secundario);
+  font-size: 0.875rem;
+}
+
+.footer-custom a {
+  color: var(--cor-primaria);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer-custom a:hover {
+  text-decoration: underline;
 }
 
 /* =========================================

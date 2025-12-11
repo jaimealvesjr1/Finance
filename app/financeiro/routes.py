@@ -60,14 +60,17 @@ def manage_wallet(wallet_id):
             wallet = db.get_or_404(Wallet, wallet_id)
             if wallet.user_id != current_user.id:
                 abort(403)
+            
+            # CORREÇÃO AQUI: Atribuição correta dos valores
             wallet.name = form.name.data
-            wallet.initial_balance.data
+            wallet.initial_balance = form.initial_balance.data 
+            
             flash('Carteira atualizada com sucesso!', 'success')
         db.session.commit()
     else:
         for field, errors in form.errors.items():
             for error in errors:
-                flash(f'Erro no formulário da Carteira {error}', 'danger')
+                flash(f'Erro no formulário da Carteira: {error}', 'danger')
     return redirect(url_for('financeiro.wallets'))
 
 @financeiro_bp.route('carteiras/delete/<int:wallet_id>', methods=['POST'])
