@@ -34,14 +34,13 @@
         </li>
         <li>
             <a href="{{ url_for('financeiro.expense_config') }}" class="nav-link text-white {% if 'expense_config' in request.endpoint %}active{% endif %}">
-                <i class="bi bi-gear me-2"></i> Config. Despesas
+                <i class="bi bi-gear me-2"></i> Categorias de Despesa
             </a>
         </li>
     </ul>
     
     <hr>
     
-    {# SIMPLIFIED FOOTER - Only Logout Link #}
     <div class="sidebar-footer p-0">
         <a href="{{ url_for('auth.logout') }}" class="nav-link text-white px-3 py-2">
             <i class="bi bi-door-open-fill me-2"></i> Encerrar Sessão
