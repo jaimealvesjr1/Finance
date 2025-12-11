@@ -10,19 +10,19 @@
         <div class="card border-0 shadow-lg rounded-4">
             <div class="card-header bg-white border-0 pt-4 pb-0 text-center">
                 <h3 class="fw-bold {{ 'text-warning' if is_edit else 'text-success' }}">
-                    {{ title }} (Receita)
+                    {{ title }}
                 </h3>
             </div>
             <div class="card-body p-5">
                 {% if is_edit %}
-                    {% set form_action = url_for('financeiro.edit_revenue', revenue_id=transaction_id) %}
+                    {% set form_action = url_for('financeiro.edit_revenue', revenue_id=revenue.id) %} 
                     {% set btn_class = 'btn-warning text-white' %}
                 {% else %}
                     {% set form_action = url_for('financeiro.add_revenue') %}
                     {% set btn_class = 'btn-success' %}
                 {% endif %}
 
-                <form method="POST" action="{{ form_action }}">
+                <form method="POST" action="{{ form_action }}" id="revenue_form">
                     {{ form.hidden_tag() }}
 
                     <div class="row">
@@ -30,27 +30,53 @@
                             {{ field(form.description, placeholder="Ex: Salário Mensal") }}
                         </div>
                         <div class="col-md-4">
-                            {{ field(form.date) }}
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                             {{ field(form.amount, placeholder="0.00", class="form-control form-control-lg fw-bold text-end") }}
-                        </div>
-                        <div class="col-md-6">
-                            {# O campo 'type' e 'is_recurrent' foram removidos #}
-                            {{ field(form.wallet) }}
-                        </div>
-                    </div>
-
-                    <div class="row mt-2">
-                        <div class="col-12">
-                            {{ field(form.category) }}
+                            {{ field(form.amount, placeholder="0.00", class="form-control form-control-lg fw-bold text-end") }}
                         </div>
                     </div>
                     
-                    <div class="d-flex gap-2">
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            {{ field(form.wallet) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ field(form.category) }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="fw-bold text-muted mb-3">Fluxo de Caixa e Status</h5>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ field(form.status, id="status_field") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ field(form.due_date) }}
+                        </div>
+                    </div>
+                    
+                    <div class="row" id="receipt_dates_row">
+                        <div class="col-md-6">
+                            {{ field(form.date, label="Data de Competência/Registro") }}
+                        </div>
+                        <div class="col-md-6" id="receipt_date_div">
+                             {{ field(form.receipt_date) }}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-light p-3 rounded mt-4 mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.is_recurrent(class="form-check-input", id="is_recurrent_check") }}
+                            <label class="form-check-label fw-bold" for="is_recurrent_check">
+                                Transação Recorrente?
+                            </label>
+                        </div>
+                        <div class="mt-3" id="frequency_field" style="display: none;">
+                            {{ field(form.frequency) }}
+                        </div>
+                    </div>
+
+                    <div class="gap-2">
                         {{ submit('Salvar Receita', class=btn_class + " flex-grow-1") }}
                         
                         {% if is_edit %}
@@ -69,6 +95,7 @@
     </div>
 </div>
 
+{# CORREÇÃO: Modal de exclusão definido localmente para evitar o erro de INCLUDE #}
 {% if is_edit %}
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -78,11 +105,12 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Tem a certeza? Esta ação é irreversível.
+                Tem a certeza que deseja excluir o lançamento de <strong>{{ revenue.description }}</strong>? Esta ação é irreversível.
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="POST" action="{{ url_for('financeiro.delete_revenue', revenue_id=transaction_id) }}">
+                {# Usa revenue.id para garantir que a rota de exclusão esteja correta #}
+                <form method="POST" action="{{ url_for('financeiro.delete_revenue', revenue_id=revenue.id) }}">
                     <button type="submit" class="btn btn-danger">Sim, Excluir</button>
                 </form>
             </div>
@@ -90,4 +118,41 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Lógica de Datas e Recorrência
+document.addEventListener('DOMContentLoaded', function() {
+    const checkRecurrence = document.getElementById('is_recurrent_check');
+    const freqDiv = document.getElementById('frequency_field');
+    const statusField = document.getElementById('status_field');
+    const receiptDateDiv = document.getElementById('receipt_date_div');
+    const $form = $('#revenue_form');
+
+    function toggleRecurrence() { freqDiv.style.display = checkRecurrence.checked ? 'block' : 'none'; }
+    
+    function toggleReceiptDate() {
+        const isReceived = statusField.value === 'received';
+        if (receiptDateDiv) {
+            receiptDateDiv.style.display = isReceived ? 'block' : 'none';
+        }
+    }
+
+    if(checkRecurrence) { checkRecurrence.addEventListener('change', toggleRecurrence); toggleRecurrence(); }
+    if(statusField) { statusField.addEventListener('change', toggleReceiptDate); toggleReceiptDate(); }
+    
+    // Inicializa Select2
+    $form.find('select').each(function() {
+        if ($(this).attr('id') !== 'status_field') { // Não aplicar no status
+             $(this).select2({
+                theme: "bootstrap-5",
+                width: '100%',
+                allowClear: true
+            });
+        }
+    });
+});
+</script>
 {% endblock %}

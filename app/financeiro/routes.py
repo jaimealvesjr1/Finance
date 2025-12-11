@@ -273,52 +273,102 @@ def delete_transaction(transaction_id):
 @financeiro_bp.route('/receitas')
 @login_required
 def revenues():
-    """Lista todas as Receitas (RevenueTransaction) do usuário."""
     page = request.args.get('page', 1, type=int)
     per_page = 10
-
-    pagination = RevenueTransaction.query.filter_by(user_id=current_user.id) \
-                                         .order_by(RevenueTransaction.date.desc()) \
-                                         .paginate(page=page, per_page=per_page, error_out=False)
-
-    all_revenues = pagination.items
-
-    total_revenue_amount = db.session.scalar(
-        db.select(func.coalesce(func.sum(RevenueTransaction.amount), 0.00)).where(
-            RevenueTransaction.user_id == current_user.id
-        )
-    )
     
-    # Usa o formulário de Receita apenas para choices (se necessário)
+    now_date = date.today()
+    base_query = RevenueTransaction.query.filter_by(user_id=current_user.id)
+    filters = []
+
+    # --- Processamento de Filtros ---
+    desc_filter = request.args.get('desc_filter')
+    cat_filter_id = request.args.get('category_filter', type=int)
+    date_start = request.args.get('date_start')
+    date_end = request.args.get('date_end')
+
+    if desc_filter:
+        filters.append(RevenueTransaction.description.ilike(f'%{desc_filter}%'))
+    
+    if cat_filter_id:
+        filters.append(RevenueTransaction.category_id == cat_filter_id)
+        
+    if date_start:
+        filters.append(RevenueTransaction.date >= datetime.strptime(date_start, '%Y-%m-%d').date())
+        
+    if date_end:
+        filters.append(RevenueTransaction.date <= datetime.strptime(date_end, '%Y-%m-%d').date()) 
+    
+    if filters:
+        query = base_query.filter(and_(*filters))
+    else:
+        query = base_query
+
+    # --- CÁLCULO DE TOTAIS NÃO PAGINADOS ---
+    total_received_amount = db.session.scalar(
+        db.select(func.coalesce(func.sum(RevenueTransaction.amount), Decimal(0))).where(
+            RevenueTransaction.user_id == current_user.id, RevenueTransaction.is_received == True
+        ).filter(and_(*filters))
+    )
+    total_received_amount = total_received_amount if total_received_amount is not None else Decimal(0)
+
+    total_receivable_amount = db.session.scalar(
+        db.select(func.coalesce(func.sum(RevenueTransaction.amount), Decimal(0))).where(
+            RevenueTransaction.user_id == current_user.id, RevenueTransaction.is_received == False
+        ).filter(and_(*filters))
+    )
+    total_receivable_amount = total_receivable_amount if total_receivable_amount is not None else Decimal(0)
+    
+    # --- Paginação e Listas ---
+    
+    receivable_revenues = query.filter_by(is_received=False).order_by(RevenueTransaction.due_date.asc()).all()
+    received_pagination = query.filter_by(is_received=True).order_by(RevenueTransaction.receipt_date.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    received_revenues = received_pagination.items
+    
     form = RevenueTransactionForm() 
+    category_choices = [(c.id, c.name) for c in current_user.categories]
 
     return render_template('financeiro/revenues.html', 
-                           transactions=all_revenues,
-                           pagination=pagination,
-                           total_revenue_amount=total_revenue_amount,
-                           title='Minhas Receitas', **footer)
+                           received_revenues=received_revenues,
+                           receivable_revenues=receivable_revenues,
+                           pagination=received_pagination,
+                           total_received_amount=total_received_amount,
+                           total_receivable_amount=total_receivable_amount,
+                           title='Minhas Receitas',
+                           now_date=now_date,
+                           desc_filter=desc_filter,
+                           cat_filter_id=cat_filter_id,
+                           date_start=date_start,
+                           date_end=date_end,
+                           category_choices=category_choices,
+                           **footer)
 
 @financeiro_bp.route('/receitas/add', methods=['GET', 'POST'])
 @login_required
 def add_revenue():
-    """Rota para adicionar uma nova RECEITA."""
-    form = RevenueTransactionForm() # Novo formulário
+    form = RevenueTransactionForm()
     
     if not current_user.wallets.first():
         flash('Você precisa adicionar pelo menos uma Carteira antes de registrar uma Receita!', 'warning')
         return redirect(url_for('financeiro.wallets'))
-    if not current_user.categories.first(): # current_user.categories agora é RevenueCategory
+    if not current_user.categories.first():
         flash('Você precisa adicionar pelo menos uma Categoria de Receita antes de registrar uma Receita!', 'warning')
         return redirect(url_for('financeiro.revenue_categories'))
         
     if form.validate_on_submit():
-        revenue = RevenueTransaction( # Novo Modelo
+        is_received = (form.status.data == 'received')
+        
+        revenue = RevenueTransaction(
             description=form.description.data,
             amount=form.amount.data,
             date=form.date.data,
-            type='R', # Força para Receita
-            is_recurrent=False, # Não permite recorrência por aqui
-            frequency=None,
+            due_date=form.due_date.data,
+            is_received=is_received,
+            receipt_date=datetime.combine(form.receipt_date.data, datetime.min.time()) if is_received and form.receipt_date.data else None,
+            
+            is_recurrent=form.is_recurrent.data,
+            frequency=form.frequency.data if form.is_recurrent.data else None,
+            
+            type='R',
             user_id=current_user.id,
             wallet_id=form.wallet.data.id,
             category_id=form.category.data.id
@@ -326,68 +376,93 @@ def add_revenue():
         db.session.add(revenue)
         db.session.commit()
         
-        flash('Receita registrada com sucesso!', 'success')
-        return redirect(url_for('main.index'))
+        msg = 'Receita registrada como RECEBIDA com sucesso!' if is_received else 'Receita registrada como A RECEBER com sucesso!'
+        flash(msg, 'success')
+        return redirect(url_for('financeiro.revenues'))
     
-    return render_template('financeiro/revenue_form.html',
-                           form=form, 
-                           title='Nova Receita',
-                           is_edit=False,
-                           transaction_id=None, **footer)
+    if request.method == 'GET':
+        if not form.status.data:
+            form.status.data = 'pending'
+        if not form.date.data:
+            form.date.data = date.today()
+        if not form.due_date.data:
+            form.due_date.data = date.today()
+        
+    return render_template('financeiro/revenue_form.html', form=form, title='Nova Receita', is_edit=False, transaction_id=None, **footer)
 
 @financeiro_bp.route('/receitas/edit/<int:revenue_id>', methods=['GET', 'POST'])
 @login_required
-def edit_revenue(revenue_id):    
+def edit_revenue(revenue_id):
     revenue = db.get_or_404(RevenueTransaction, revenue_id)
-    if revenue.user_id != current_user.id:
-        abort(403)
-        
+    if revenue.user_id != current_user.id: abort(403)
+    
     form = RevenueTransactionForm(obj=revenue)
     
     if request.method == 'GET':
-        form.description.data = revenue.description
-        form.amount.data = revenue.amount
-        form.date.data = revenue.date
-
+        form.status.data = 'received' if revenue.is_received else 'pending'
+        form.receipt_date.data = revenue.receipt_date.date() if revenue.receipt_date else None
+        
         form.wallet.data = revenue.wallet
         form.category.data = revenue.category
 
     if form.validate_on_submit():
+        is_received_new = (form.status.data == 'received')
+        
         revenue.description = form.description.data
         revenue.amount = form.amount.data
         revenue.date = form.date.data
-            
+        revenue.due_date = form.due_date.data
         revenue.wallet_id = form.wallet.data.id
         revenue.category_id = form.category.data.id
+        revenue.is_recurrent = form.is_recurrent.data
+        revenue.frequency = form.frequency.data if form.is_recurrent.data else None
+        
+        if is_received_new:
+            revenue.is_received = True
+            revenue.receipt_date = datetime.combine(form.receipt_date.data, datetime.min.time()) if form.receipt_date.data else datetime.utcnow()
+        else:
+            revenue.is_received = False
+            revenue.receipt_date = None
         
         db.session.commit()
         flash('Receita atualizada com sucesso!', 'success')
         return redirect(url_for('financeiro.revenues'))
-        
     
-    return render_template('financeiro/revenue_form.html', # Novo template
-                           form=form, 
-                           title='Editar Receita',
-                           is_edit=True,
-                           transaction_id=revenue_id, **footer)
+    return render_template('financeiro/revenue_form.html', form=form, title='Editar Receita', is_edit=True, transaction_id=revenue_id, **footer)
 
 @financeiro_bp.route('/receitas/delete/<int:revenue_id>', methods=['POST'])
 @login_required
 def delete_revenue(revenue_id):
     revenue = db.get_or_404(RevenueTransaction, revenue_id)
-    
-    if revenue.user_id != current_user.id:
-        abort(403)
-        
+    if revenue.user_id != current_user.id: abort(403)
     try:
         db.session.delete(revenue)
         db.session.commit()
         flash('Receita excluída com sucesso!', 'info')
-    
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao excluir a Receita: {e}', 'danger')
+    return redirect(url_for('financeiro.revenues'))
+
+@financeiro_bp.route('/receitas/receive/<int:revenue_id>', methods=['POST'])
+@login_required
+def mark_as_received(revenue_id):
+    revenue = db.get_or_404(RevenueTransaction, revenue_id)
+    if revenue.user_id != current_user.id: abort(403)
+    if revenue.is_received:
+        flash('Esta receita já está marcada como recebida.', 'warning')
+        return redirect(url_for('financeiro.revenues'))
         
+    revenue.is_received = True
+    revenue.receipt_date = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        flash(f'Recebimento de "{revenue.description}" confirmado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao dar baixa no recebimento: {e}', 'danger')
+
     return redirect(url_for('financeiro.revenues'))
 
 @financeiro_bp.route('/despesas')
@@ -483,7 +558,7 @@ def add_expense():
 
     return render_template('financeiro/expense_form.html',
                            form=form, 
-                           title='Novo Lançamento de Despesa',
+                           title='Nova Despesa',
                            is_edit=False,
                            expense_id=None, **footer)
 

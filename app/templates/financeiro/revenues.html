@@ -15,9 +15,7 @@
         <h2 class="mb-0"><strong>Gestão de Receitas</strong></h2>
     </div>
     <div>
-        <a href="{{ url_for('financeiro.add_revenue') }}" class="btn btn-success shadow-sm">
-            <i class="bi bi-plus-lg me-2"></i>Nova Receita
-        </a>
+        {{ primary('+ Nova Receita', url_for('financeiro.add_revenue')) }}
     </div>
 </div>
 
@@ -62,81 +60,194 @@
     </div>
     
     <div class="col-lg-2">
-        <div class="card border-0 shadow-sm bg-success text-white h-100 d-flex justify-content-center align-items-center text-center p-2">
+        <div id="card-total" class="card border-0 shadow-sm bg-success text-white h-100 d-flex justify-content-center align-items-center text-center p-2 transition-colors"
+             data-total-received="{{ total_received_amount | currency }}"
+             data-total-receivable="{{ total_receivable_amount | currency }}">
             <div>
-                <small class="text-uppercase opacity-75 fw-bold" style="font-size: 0.7rem;">Total de Receitas</small>
-                <div class="h4 fw-bold mb-0 text-nowrap">{{ total_revenue_amount | currency }}</div>
+                <small id="label-total" class="text-uppercase opacity-75 fw-bold" style="font-size: 0.7rem;">Total Recebido</small>
+                <div id="valor-total" class="h4 fw-bold mb-0 text-nowrap">{{ total_received_amount | currency }}</div>
             </div>
         </div>
     </div>
 </div>
 
-{% if transactions %}
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light text-uppercase small text-muted">
-                    <tr>
-                        <th class="ps-4 py-3 border-0" style="width: 10%;">Data</th>
-                        <th class="border-0" style="width: 35%;">Descrição</th>
-                        <th class="border-0" style="width: 15%;">Carteira</th>
-                        <th class="border-0" style="width: 25%;">Categoria</th>
-                        <th class="text-end border-0" style="width: 10%;">Valor (R$)</th>
-                        <th class="text-center pe-4 border-0" style="width: 5%;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in transactions %}
-                    <tr class="bg-white border-bottom-light">
-                        <td class="ps-4 py-3 text-muted font-monospace">{{ t.date.strftime('%d/%m/%Y') }}</td>
-                        <td class="fw-medium text-dark">{{ t.description }}</td>
-                        <td>
-                            <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-light text-success border fw-normal rounded-pill px-3">
-                                {{ t.category.name }}
-                            </span>
-                        </td>
-                        <td class="text-end fw-bold text-success">
-                            + {{ t.amount | currency }}
-                        </td>
-                        <td class="text-center pe-4">
-                            <div class="btn-group">
-                                <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-link text-secondary" title="Editar">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}" title="Excluir">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<ul class="nav nav-tabs mb-4" id="revenuesTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="received-tab" data-bs-toggle="tab" data-bs-target="#received-content" type="button" role="tab">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>Recebidas (Realizadas)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="receivable-tab" data-bs-toggle="tab" data-bs-target="#receivable-content" type="button" role="tab">
+            <i class="bi bi-clock-history text-warning me-2"></i>A Receber (Pendentes)
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="revenuesTabsContent">
+    
+    {# AB A - RECEITAS RECEBIDAS (PAGINADAS) #}
+    <div class="tab-pane fade show active" id="received-content" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small text-muted">
+                        <tr>
+                            <th class="ps-4 py-3 border-0" style="width: 12%;">Data Recebimento</th>
+                            <th class="border-0" style="width: 30%;">Descrição</th>
+                            <th class="border-0" style="width: 15%;">Carteira</th>
+                            <th class="border-0" style="width: 25%;">Categoria</th>
+                            <th class="text-end border-0" style="width: 10%;">Valor</th>
+                            <th class="text-center pe-4 border-0" style="width: 8%;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in received_revenues %}
+                        <tr class="bg-white border-bottom-light">
+                            <td class="ps-4 py-3 text-muted font-monospace">{{ t.receipt_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="fw-medium text-dark">{{ t.description }}</td>
+                            <td><span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span></td>
+                            <td><span class="badge bg-light text-success border fw-normal rounded-pill px-3">{{ t.category.name }}</span></td>
+                            <td class="text-end fw-bold text-success">+ {{ t.amount | currency }}</td>
+                            <td class="text-center pe-4">
+                                <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-link text-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma receita recebida encontrada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {{ render_pagination(pagination, 'financeiro.revenues') }}
+    </div>
+
+    {# AB B - RECEITAS A RECEBER (PENDENTES) #}
+    <div class="tab-pane fade" id="receivable-content" role="tabpanel">
+        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong>Atenção:</strong> Estes lançamentos são previsões e não afetam o saldo de caixa até serem baixados.
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small text-muted">
+                        <tr>
+                            <th class="ps-4 py-3 border-0" style="width: 12%;">Vencimento</th>
+                            <th class="border-0" style="width: 30%;">Descrição</th>
+                            <th class="border-0" style="width: 15%;">Carteira</th>
+                            <th class="border-0" style="width: 25%;">Categoria</th>
+                            <th class="text-end border-0" style="width: 10%;">Valor Previsto</th>
+                            <th class="text-center pe-4 border-0" style="min-width: 150px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in receivable_revenues %}
+                            {% set dias_restantes = (t.due_date - now_date).days %}
+                            
+                            {% set row_class = "bg-white" %}
+                            {% set due_class = "text-warning" %}
+                            
+                            {% if dias_restantes < 0 %}
+                                {% set row_class = "bg-white border-start border-4 border-danger" %}
+                                {% set due_class = "text-danger" %}
+                            {% elif dias_restantes <= 7 %}
+                                {% set row_class = "table-warning-light" %}
+                                {% set due_class = "text-warning" %}
+                            {% endif %}
+
+                        <tr class="{{ row_class }} border-bottom-light">
+                            <td class="ps-4 py-3 font-monospace {{ due_class }}">
+                                {{ t.due_date.strftime('%d/%m/%Y') }}
+                                {% if dias_restantes < 0 %}
+                                    <br><span class="badge bg-danger">Atrasado {{ dias_restantes|abs }} dias</span>
+                                {% elif dias_restantes == 0 %}
+                                    <br><span class="badge bg-danger">Vence Hoje!</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="fw-bold text-dark">{{ t.description }}</span></td>
+                            <td><span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span></td>
+                            <td><span class="badge bg-light text-success border fw-normal rounded-pill px-3">{{ t.category.name }}</span></td>
+                            <td class="text-end fw-bold text-secondary font-monospace">+ {{ t.amount | currency }}</td>
+                            <td class="text-center pe-4">
+                                <form action="{{ url_for('financeiro.mark_as_received', revenue_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar recebimento desta receita?');">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Receber)">
+                                        <i class="bi bi-check-lg"></i> Receber
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-link text-secondary ms-1" title="Editar"><i class="bi bi-pencil"></i></a>
+                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma receita pendente encontrada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-    
-    {{ render_pagination(pagination, 'financeiro.revenues') }}
+</div>
 
-{% else %}
-    <div class="alert alert-light text-center border py-5">
-        <i class="bi bi-inbox fs-1 text-muted"></i>
-        <p class="mt-3 text-muted">Nenhuma receita encontrada neste período.</p>
-        <a href="{{ url_for('financeiro.add_revenue') }}" class="btn btn-outline-success mt-2">
-            Adicionar Receita
-        </a>
-    </div>
-{% endif %}
-
-{# Modals #}
-{% for t in transactions %}
+{# Modals (recebidas + a receber) #}
+{% for t in received_revenues + receivable_revenues %}
 {{ confirm_modal(
     id='confirmDeleteRevenueModal' ~ t.id,
     title='Excluir Receita',
-    body='Tem certeza que deseja excluir a receita de ' ~ t.description ~ ' no valor de ' ~ (t.amount | currency) ~ '? Essa ação é irreversível.',
+    body='Tem certeza que deseja excluir o lançamento de ' ~ t.description ~ ' no valor de ' ~ (t.amount | currency) ~ '? Essa ação é irreversível.',
     action_url=url_for('financeiro.delete_revenue', revenue_id=t.id)
 ) }}
 {% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+$(document).ready(function() {
+    // Lógica Select2 para filtro
+    $('#revenue_category_filter_select2').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        allowClear: true,
+        placeholder: "Selecione a Categoria"
+    });
+    
+    // Lógica para alternar o card de total
+    function atualizarCardTotal(abaAtiva) {
+        var cardTotal = $('#card-total');
+        var valorTotal = $('#valor-total');
+        var labelTotal = $('#label-total');
+        
+        if (abaAtiva === 'received-tab') {
+            cardTotal.removeClass('bg-warning text-dark').addClass('bg-success text-white');
+            valorTotal.text(cardTotal.data('total-received'));
+            labelTotal.text('TOTAL RECEBIDO');
+        } else if (abaAtiva === 'receivable-tab') {
+            cardTotal.removeClass('bg-success text-white').addClass('bg-warning text-dark');
+            valorTotal.text(cardTotal.data('total-receivable'));
+            labelTotal.text('TOTAL A RECEBER');
+        }
+    }
+
+    // Inicializa a tab e o card
+    var activeTab = document.querySelector('#revenuesTabs button.active');
+    if (activeTab) {
+        atualizarCardTotal(activeTab.id);
+    }
+
+    var triggerTabList = [].slice.call(document.querySelectorAll('#revenuesTabs button'))
+    triggerTabList.forEach(function (triggerEl) {
+        triggerEl.addEventListener('shown.bs.tab', function (event) {
+            atualizarCardTotal(event.target.id);
+        })
+    });
+});
+</script>
 {% endblock %}

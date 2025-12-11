@@ -19,26 +19,23 @@ class Wallet(db.Model):
     @property
     def current_balance(self):
         total_receipts = db.session.scalar(
-            db.select(func.coalesce(func.sum(RevenueTransaction.amount), Decimal(0))).where( # Uso de Decimal(0)
+            db.select(func.coalesce(func.sum(RevenueTransaction.amount), Decimal(0))).where(
                 RevenueTransaction.wallet_id == self.id,
+                RevenueTransaction.is_received == True
             ))
         
-        # 2. Soma Despesas Pagas (Expense onde is_paid=True)
         total_paid_expenses = db.session.scalar(
-            db.select(func.coalesce(func.sum(Expense.amount), Decimal(0))).where( # Uso de Decimal(0)
+            db.select(func.coalesce(func.sum(Expense.amount), Decimal(0))).where( 
                 Expense.wallet_id == self.id,
                 Expense.is_paid == True
             ))
         
-        # Remove conversão para float. O resultado é Decimal ou None.
         receipts = total_receipts if total_receipts is not None else Decimal(0)
         paid_expenses = total_paid_expenses if total_paid_expenses is not None else Decimal(0)
 
-        # A operação agora é entre Decimais (self.initial_balance é Decimal)
         return self.initial_balance + receipts - paid_expenses
     
 
-# --- MODELO RENOMEADO: Category -> RevenueCategory (SÓ PARA RECEITAS) ---
 class RevenueCategory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
@@ -52,7 +49,6 @@ class RevenueCategory(db.Model):
     def __repr__(self):
         return f'<RevenueCategory {self.name}>'
     
-# --- NOVOS MODELOS: HIERARQUIA DE DESPESA (ExpenseGroup / ExpenseItem) ---
 class ExpenseGroup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
@@ -75,28 +71,29 @@ class ExpenseItem(db.Model):
     def __repr__(self):
         return f'<ExpenseItem {self.name} ({self.group.name})>'
 
-# --- MODELO RENOMEADO: Transaction -> RevenueTransaction (SÓ PARA RECEITAS) ---
 class RevenueTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(255), nullable=False)
     amount = db.Column(db.Numeric(10, 2), nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
-    type = db.Column(db.String(1), default='R', nullable=False) # Forçado para 'R'
-
-    # Campos de recorrência do modelo original (agora ignorados no form de Receita)
-    is_recurrent = db.Column(db.Boolean, default=False)
+    date = db.Column(db.Date, default=date.today, nullable=False, index=True)
+    due_date = db.Column(db.Date, nullable=False, index=True)
+    receipt_date = db.Column(db.DateTime, nullable=True, index=True)
+    is_received = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    
+    is_recurrent = db.Column(db.Boolean, default=False, nullable=False)
     frequency = db.Column(db.String(50), nullable=True)
-    last_launch_date = db.Column(db.DateTime, nullable=True) 
+    last_launch_date = db.Column(db.DateTime, nullable=True)
+    
+    type = db.Column(db.String(1), default='R', nullable=False) 
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('revenue_category.id'), nullable=False)
     
     def __repr__(self):
-        return f'<RevenueTransaction {self.description} | R${self.amount} (R)>'
+        return f'<RevenueTransaction {self.description} | R${self.amount} | Recebido: {self.is_received}>'
 
-# --- NOVO MODELO: Expense (Despesa Paga ou Pendente) ---
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(255), nullable=False)

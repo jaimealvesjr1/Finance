@@ -58,7 +58,7 @@ class ExpenseItemForm(FlaskForm):
     submit = SubmitField('Salvar Item de Despesa')
 
 
-class RevenueTransactionForm(FlaskForm): # Nome alterado
+class RevenueTransactionForm(FlaskForm):
     description = StringField('Descrição da Receita', validators=[
         DataRequired(), 
         Length(max=255)
@@ -67,8 +67,17 @@ class RevenueTransactionForm(FlaskForm): # Nome alterado
         DataRequired(), 
         NumberRange(min=0.01, message="O valor deve ser positivo.")
     ])
-    date = DateField('Data da Receita', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
     
+    due_date = DateField('Data de Vencimento', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
+    date = DateField('Data de Competência/Registro', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
+    
+    status = SelectField('Situação', choices=[
+        ('pending', 'A Receber (Agendado)'), 
+        ('received', 'Recebido (Realizado)')
+    ], validators=[DataRequired()])
+    
+    receipt_date = DateField('Data de Recebimento (Opcional)', format='%Y-%m-%d', validators=[Optional()])
+
     wallet = QuerySelectField(
         'Carteira/Conta',
         query_factory=get_user_wallets,
@@ -87,8 +96,27 @@ class RevenueTransactionForm(FlaskForm): # Nome alterado
         validators=[DataRequired(message="Selecione uma categoria de receita.")]
     )
 
+    is_recurrent = BooleanField('Transação Recorrente?')
+    frequency = SelectField('Frequência de Recorrência', choices=[
+        ('', 'Não Recorrente'),
+        ('daily', 'Diária'), 
+        ('weekly', 'Semanal'), 
+        ('monthly', 'Mensal'), 
+        ('yearly', 'Anual')
+    ], default='', validators=[Optional()])
+
     submit = SubmitField('Registrar Receita')
     
+    def validate_receipt_date(self, field):
+        if self.status.data == 'received':
+            if not field.data:
+                 raise ValidationError('A data de recebimento é obrigatória para receitas recebidas.')
+            if field.data > date.today():
+                 raise ValidationError('A data de recebimento não pode ser futura.')
+    
+    def validate_due_date(self, field):
+        if field.data < self.date.data:
+            raise ValidationError('A data de vencimento não pode ser anterior à data de registro.')
     
 class ExpenseForm(FlaskForm):
     description = StringField('Descrição da Despesa', validators=[
