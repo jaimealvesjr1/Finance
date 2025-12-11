@@ -9,26 +9,28 @@
         <p class="text-muted mb-0">Fluxo de caixa e resumo do mês atual.</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="{{ url_for('financeiro.revenues') }}" class="btn btn-outline-success">
-            <i class="bi bi-journal-arrow-up me-2"></i>Receitas
+        {# 4. Botões de ação direta #}
+        <a href="{{ url_for('financeiro.add_revenue') }}" class="btn btn-success shadow-sm">
+            <i class="bi bi-plus-lg me-2"></i>Nova Receita
         </a>
-        <a href="{{ url_for('financeiro.expenses') }}" class="btn btn-outline-danger">
-            <i class="bi bi-journal-arrow-down me-2"></i>Despesas
+        <a href="{{ url_for('financeiro.add_expense') }}" class="btn btn-danger shadow-sm">
+            <i class="bi bi-plus-lg me-2"></i>Nova Despesa
         </a>
-        <a href="{{ url_for('financeiro.expense_config') }}" class="btn btn-outline-secondary" title="Configurar Plano de Contas">
+        <a href="{{ url_for('financeiro.categories_config') }}" class="btn btn-outline-secondary" title="Configurar Plano de Contas">
             <i class="bi bi-gear-fill"></i>
         </a>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
+    {# 1. Cards KPI: Receitas Recebidas (Executado) #}
     <div class="col-md-3">
         <div class="card border-0 shadow-sm h-100 overflow-hidden">
             <div class="card-body position-relative">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <h6 class="text-uppercase text-muted fw-bold small mb-1">Receitas (Mês)</h6>
-                        <h3 class="text-success fw-bold mb-0 font-monospace">{{ monthly_income | currency }}</h3>
+                        <h6 class="text-uppercase text-muted fw-bold small mb-1">Receitas Recebidas (Mês)</h6>
+                        <h3 class="text-success fw-bold mb-0 font-monospace">{{ monthly_received_revenue | currency }}</h3>
                     </div>
                     <div class="icon-shape bg-success bg-opacity-10 text-success rounded-3 p-3">
                         <i class="bi bi-graph-up-arrow fs-4"></i>
@@ -38,13 +40,14 @@
         </div>
     </div>
 
+    {# 1. Cards KPI: Despesas Pagas (Executado) #}
     <div class="col-md-3">
         <div class="card border-0 shadow-sm h-100 overflow-hidden">
             <div class="card-body position-relative">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                         <h6 class="text-uppercase text-muted fw-bold small mb-1">Despesas Pagas (Mês)</h6>
-                        <h3 class="text-danger fw-bold mb-0 font-monospace">{{ monthly_expenses | currency }}</h3>
+                        <h3 class="text-danger fw-bold mb-0 font-monospace">{{ monthly_paid_expenses | currency }}</h3>
                     </div>
                     <div class="icon-shape bg-danger bg-opacity-10 text-danger rounded-3 p-3">
                         <i class="bi bi-check-circle-fill fs-4"></i>
@@ -54,13 +57,14 @@
         </div>
     </div>
     
+    {# 1. Cards KPI: Receitas a Receber (Previsto) #}
     <div class="col-md-3">
         <div class="card border-0 shadow-sm h-100 overflow-hidden">
             <div class="card-body position-relative">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <h6 class="text-uppercase text-muted fw-bold small mb-1">A Pagar (Previsão)</h6>
-                        <h3 class="text-warning fw-bold mb-0 font-monospace">{{ monthly_pending_expenses | currency }}</h3>
+                        <h6 class="text-uppercase text-muted fw-bold small mb-1">Receitas a Receber (Previsão)</h6>
+                        <h3 class="text-warning fw-bold mb-0 font-monospace">{{ monthly_receivable_revenue | currency }}</h3>
                     </div>
                     <div class="icon-shape bg-warning bg-opacity-10 text-warning rounded-3 p-3">
                         <i class="bi bi-clock-history fs-4"></i>
@@ -70,6 +74,7 @@
         </div>
     </div>
 
+    {# 1. Cards KPI: Saldo Total (Atual) #}
     <div class="col-md-3">
         <div class="card border-0 shadow-sm h-100 bg-light">
             <div class="card-body p-3 d-flex flex-column justify-content-center">
@@ -85,6 +90,7 @@
         </div>
     </div>
     
+    {# Gráfico de Barras Mensal (Manter) #}
     <div class="col-12">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-transparent border-0 pt-4 px-4">
@@ -97,67 +103,172 @@
     </div>
 </div>
 
-<div class="card border-0 shadow-sm">
-    <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Últimas Despesas Pagas</h5>
-        <a href="{{ url_for('financeiro.expenses') }}" class="btn btn-sm btn-outline-danger">Ver Despesas</a>
+{# 2. Gráficos de Pizza - Receitas e Despesas #}
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="mb-0">Receitas Recebidas por Categoria (Total: {{ monthly_received_revenue | currency }})</h5>
+            </div>
+            <div class="card-body">
+                {% if pie_revenue_data %}
+                <canvas id="revenuePieChart" height="200"></canvas>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-pie-chart fs-1 mb-2 d-block"></i>
+                    <p>Nenhum dado de receita recebida para análise.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    <div class="card-body px-0">
-        {% if latest_transactions %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-muted small text-uppercase">
-                        <tr>
-                            <th class="ps-4">Data Pagamento</th>
-                            <th>Descrição</th>
-                            <th>Item de Despesa</th>
-                            <th>Carteira</th>
-                            <th class="text-end pe-4">Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in latest_transactions %}
-                        <tr>
-                            <td class="ps-4 text-muted">{{ t.payment_date.strftime('%d/%m/%Y') }}</td>
-                            <td class="fw-medium">{{ t.description }}</td>
-                            <td><span class="badge bg-light text-secondary border rounded-pill px-3">{{ t.item.name }}</span></td>
-                            <td><span class="badge bg-light text-dark border">{{ t.wallet.name }}</span></td>
-                            <td class="text-end pe-4 fw-bold text-danger">
-                                - {{ t.amount | currency }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="mb-0">Despesas Pagas por Item (Total: {{ monthly_paid_expenses | currency }})</h5>
             </div>
-        {% else %}
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-receipt fs-1 mb-2 d-block"></i>
-                <p>Nenhuma despesa recente encontrada.</p>
-                <a href="{{ url_for('financeiro.add_expense') }}" class="btn btn-sm btn-danger mt-2">Adicionar Despesa</a>
+            <div class="card-body">
+                {% if pie_expense_data %}
+                <canvas id="expensePieChart" height="200"></canvas>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-pie-chart-fill fs-1 mb-2 d-block"></i>
+                    <p>Nenhum dado de despesa paga para análise.</p>
+                </div>
+                {% endif %}
             </div>
-        {% endif %}
+        </div>
+    </div>
+</div>
+
+{# 3. Listas: Receitas a Receber e Despesas a Pagar - CONSOLIDADO #}
+<div class="row g-4">
+    <div class="col-lg-12">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="mb-0">Próximas Transações (Previsão de Fluxo)</h5>
+            </div>
+            <div class="card-body px-4">
+                <div class="row g-4">
+                    
+                    {# Coluna de Receitas a Receber #}
+                    <div class="col-md-6 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3"><i class="bi bi-journal-arrow-up text-success me-2"></i>Receitas a Receber (Próximos 5)</h6>
+                        
+                        {% if receivable_revenues %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light text-muted small text-uppercase">
+                                        <tr>
+                                            <th class="ps-4">Vencimento</th>
+                                            <th>Descrição</th>
+                                            <th class="text-end pe-4">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for t in receivable_revenues %}
+                                        {% set dias_restantes = (t.due_date - now_date).days %}
+                                        <tr>
+                                            <td class="ps-4 text-muted font-monospace">
+                                                {{ t.due_date.strftime('%d/%m/%Y') }}
+                                                {% if dias_restantes < 0 %}
+                                                    <span class="badge bg-danger d-block mt-1">Atrasado</span>
+                                                {% elif dias_restantes == 0 %}
+                                                    <span class="badge bg-danger d-block mt-1">Vence Hoje!</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="fw-medium">{{ t.description }}</td>
+                                            <td class="text-end pe-4 fw-bold text-success">
+                                                + {{ t.amount | currency }}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end pt-3">
+                                <a href="{{ url_for('financeiro.revenues') }}#receivable-tab" class="btn btn-sm btn-outline-success">Ver Todas as Receitas</a>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-arrow-up fs-1 mb-2 d-block"></i>
+                                <p>Nenhuma receita pendente encontrada.</p>
+                                <a href="{{ url_for('financeiro.add_revenue') }}" class="btn btn-sm btn-success mt-2">Adicionar Receita</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {# Coluna de Despesas a Pagar #}
+                    <div class="col-md-6">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3"><i class="bi bi-receipt text-danger me-2"></i>Despesas a Pagar (Próximos 5)</h6>
+                        
+                        {% if pending_expenses %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light text-muted small text-uppercase">
+                                        <tr>
+                                            <th class="ps-4">Vencimento</th>
+                                            <th>Descrição</th>
+                                            <th class="text-end pe-4">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for t in pending_expenses %}
+                                        {% set dias_restantes = (t.due_date - now_date).days %}
+                                        <tr>
+                                            <td class="ps-4 text-muted font-monospace">
+                                                {{ t.due_date.strftime('%d/%m/%Y') }}
+                                                {% if dias_restantes < 0 %}
+                                                    <span class="badge bg-danger d-block mt-1">Atrasado</span>
+                                                {% elif dias_restantes == 0 %}
+                                                    <span class="badge bg-danger d-block mt-1">Vence Hoje!</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="fw-medium">{{ t.description }}</td>
+                                            <td class="text-end pe-4 fw-bold text-danger">
+                                                - {{ t.amount | currency }}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end pt-3">
+                                <a href="{{ url_for('financeiro.expenses') }}#apagar-tab" class="btn btn-sm btn-outline-danger">Ver Todas as Despesas</a>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-receipt fs-1 mb-2 d-block"></i>
+                                <p>Nenhuma despesa pendente encontrada.</p>
+                                <a href="{{ url_for('financeiro.add_expense') }}" class="btn btn-sm btn-danger mt-2">Adicionar Despesa</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const ctx = document.getElementById('financeChart').getContext('2d');
-    const financeChart = new Chart(ctx, {
+    // Gráfico de Barras Mensal (Manter)
+    const ctxBar = document.getElementById('financeChart').getContext('2d');
+    const financeChart = new Chart(ctxBar, {
         type: 'bar',
         data: {
             labels: {{ chart_labels | tojson }},
             datasets: [
                 {
-                    label: 'Receitas',
+                    label: 'Receitas Recebidas',
                     data: {{ chart_receitas | tojson }},
-                    backgroundColor: '#10b981',
+                    backgroundColor: '#10b981', // Cor Sucesso
                     borderRadius: 4
                 },
                 {
                     label: 'Despesas Pagas',
                     data: {{ chart_despesas | tojson }},
-                    backgroundColor: '#ef4444',
+                    backgroundColor: '#ef4444', // Cor Perigo
                     borderRadius: 4
                 }
             ]
@@ -173,5 +284,67 @@
             }
         }
     });
+
+    // Gráfico de Pizza - Receitas por Categoria
+    // Verifica se há dados para evitar erro do Chart.js
+    if ({{ pie_revenue_data | length | tojson }} > 0) {
+        const ctxRevenuePie = document.getElementById('revenuePieChart').getContext('2d');
+        new Chart(ctxRevenuePie, {
+            type: 'pie',
+            data: {
+                labels: {{ pie_revenue_labels | tojson }},
+                datasets: [{
+                    data: {{ pie_revenue_data | tojson }},
+                    backgroundColor: [
+                        '#10b981', // green (sucesso)
+                        '#4f46e5', // indigo (primaria)
+                        '#f59e0b', // amber (aviso)
+                        '#3b82f6', // blue
+                        '#8b5cf6', // violet
+                        '#f97316', // orange
+                        '#14b8a6', // teal
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'right' }
+                }
+            }
+        });
+    }
+
+    // Gráfico de Pizza - Despesas por Item
+    // Verifica se há dados para evitar erro do Chart.js
+    if ({{ pie_expense_data | length | tojson }} > 0) {
+        const ctxExpensePie = document.getElementById('expensePieChart').getContext('2d');
+        new Chart(ctxExpensePie, {
+            type: 'pie',
+            data: {
+                labels: {{ pie_expense_labels | tojson }},
+                datasets: [{
+                    data: {{ pie_expense_data | tojson }},
+                    backgroundColor: [
+                        '#ef4444', // red (perigo)
+                        '#f59e0b', // amber (aviso)
+                        '#4f46e5', // indigo (primaria)
+                        '#10b981', // green (sucesso)
+                        '#3b82f6', // blue
+                        '#8b5cf6', // violet
+                        '#f97316', // orange
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'right' }
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}

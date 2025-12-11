@@ -57,44 +57,12 @@ def transfer():
         source_wallet = form.source_wallet.data
         target_wallet = form.target_wallet.data
         
-        first_revenue_category = RevenueCategory.query.filter_by(user_id=current_user.id).first()
-        first_expense_item = ExpenseItem.query.filter_by(user_id=current_user.id).first()
-
-        if not first_revenue_category or not first_expense_item:
-            flash('Erro: Você precisa de pelo menos uma Categoria de Receita e um Item de Despesa cadastrados para realizar uma transferência interna.', 'danger')
-            return redirect(url_for('financeiro.wallets'))
-            
         try:
-            expense_tx = Expense(
-                description=f"[TRANSFERÊNCIA] Saída p/ {target_wallet.name}",
-                amount=amount,
-                date=date.today(),
-                due_date=date.today(),
-                is_paid=True,
-                payment_date=datetime.utcnow(), 
-                is_recurrent=False,
-                item_id=first_expense_item.id,
-                user_id=current_user.id,
-                wallet_id=source_wallet.id
-            )
-            db.session.add(expense_tx)
+            source_wallet.initial_balance -= amount
+            target_wallet.initial_balance += amount
 
-            revenue_tx = RevenueTransaction(
-                description=f"[TRANSFERÊNCIA] Entrada de {source_wallet.name}",
-                amount=amount,
-                date=date.today(),
-                due_date=date.today(),
-                is_received=True,
-                receipt_date=datetime.utcnow(),
-                type='R',
-                user_id=current_user.id,
-                wallet_id=target_wallet.id,
-                category_id=first_revenue_category.id
-            )
-            db.session.add(revenue_tx)
-            
             db.session.commit()
-            flash(f'Transferência de R$ {amount:.2f} de {source_wallet.name} para {target_wallet.name} realizada com sucesso!', 'success')
+            flash(f'Transferência de {source_wallet.name} para {target_wallet.name} realizada com sucesso!', 'success')
             
         except Exception as e:
             db.session.rollback()
