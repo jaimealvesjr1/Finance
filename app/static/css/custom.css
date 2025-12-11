@@ -77,14 +77,13 @@ a {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 1000;
+  z-index: 1045;
   transition: transform 0.3s ease-in-out;
 }
 
 .main-content {
   flex-grow: 1;
   margin-left: var(--sidebar-width);
-  margin-right: 20px;
   padding-top: 2rem;
   background-color: var(--cor-fundo-body);
   min-height: 100vh;
@@ -139,7 +138,6 @@ a {
     color: var(--cor-texto-principal);
 }
 .footer-custom {
-  background-color: var(--cor-fundo-card);
   border-top: 1px solid var(--borda-suave);
   padding: 1.5rem 2rem;
   margin-top: auto;
@@ -314,13 +312,8 @@ a {
    ========================================= */
 @media (max-width: 767.98px) {
   .sidebar-wrapper {
-    transform: translateX(-100%); /* Oculta a sidebar por padrão no mobile */
-    width: 280px; /* Largura ligeiramente maior para toque */
-  }
-
-  /* Quando a classe 'show' é adicionada (via JS do Bootstrap Offcanvas) */
-  .sidebar-wrapper.show {
-    transform: translateX(0);
+    width: 280px; 
+    transition: none !important; 
   }
 
   .main-content {
