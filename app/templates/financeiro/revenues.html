@@ -25,22 +25,25 @@
     <div class="col-lg-10">
         <div class="card border-0 shadow-sm bg-light">
             <div class="card-body py-3">
-                {# SIMPLIFIED FILTER FORM for personal finance project #}
                 <form method="GET" action="{{ url_for('financeiro.revenues') }}" class="row g-2 align-items-end">
                     <div class="col-md-3">
                         <label class="small text-muted fw-bold">Descrição</label>
-                        <input type="text" name="desc_filter" class="form-control form-select-sm" placeholder="Buscar...">
+                        <input type="text" name="desc_filter" class="form-control form-select-sm" placeholder="Buscar..." value="{{ desc_filter if desc_filter }}">
                     </div>
                     <div class="col-md-3">
                         <label class="small text-muted fw-bold">Categoria</label>
-                        {# Assumindo que este QuerySelectField/Select2 será populado por JS ou Flask #}
-                        <select name="category_filter" class="form-select form-select-sm" id="revenue_category_filter_select2"></select>
+                        <select name="category_filter" class="form-select form-select-sm" id="revenue_category_filter_select2">
+                            <option value="">Todas as Categorias</option>
+                            {% for id, name in category_choices %}
+                                <option value="{{ id }}" {% if id == cat_filter_id %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="col-md-4">
                         <label class="small text-muted fw-bold">Período (De / Até)</label>
                         <div class="input-group input-group-sm">
-                            <input type="date" name="date_start" class="form-control">
-                            <input type="date" name="date_end" class="form-control">
+                            <input type="date" name="date_start" class="form-control" value="{{ date_start if date_start }}">
+                            <input type="date" name="date_end" class="form-control" value="{{ date_end if date_end }}">
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -58,16 +61,14 @@
         </div>
     </div>
     
-    {# --- NOVO CARD DE TOTAL --- #}
     <div class="col-lg-2">
         <div class="card border-0 shadow-sm bg-success text-white h-100 d-flex justify-content-center align-items-center text-center p-2">
             <div>
                 <small class="text-uppercase opacity-75 fw-bold" style="font-size: 0.7rem;">Total de Receitas</small>
-                <div class="h4 fw-bold mb-0 text-nowrap">R$ {{ "%.2f"|format(total_revenue_amount) }}</div>
+                <div class="h4 fw-bold mb-0 text-nowrap">{{ total_revenue_amount | currency }}</div>
             </div>
         </div>
     </div>
-    {# -------------------------- #}
 </div>
 
 {% if transactions %}
@@ -98,7 +99,7 @@
                             </span>
                         </td>
                         <td class="text-end fw-bold text-success">
-                            + R$ {{ "%.2f"|format(t.amount) }}
+                            + {{ t.amount | currency }}
                         </td>
                         <td class="text-center pe-4">
                             <div class="btn-group">
@@ -134,9 +135,8 @@
 {{ confirm_modal(
     id='confirmDeleteRevenueModal' ~ t.id,
     title='Excluir Receita',
-    body='Tem certeza que deseja excluir a receita de ' ~ t.description ~ ' no valor de R$ ' ~ ("%.2f"|format(t.amount)) ~ '? Essa ação é irreversível.',
+    body='Tem certeza que deseja excluir a receita de ' ~ t.description ~ ' no valor de ' ~ (t.amount | currency) ~ '? Essa ação é irreversível.',
     action_url=url_for('financeiro.delete_revenue', revenue_id=t.id)
 ) }}
 {% endfor %}
-
 {% endblock %}

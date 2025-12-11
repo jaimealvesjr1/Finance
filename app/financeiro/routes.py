@@ -5,17 +5,23 @@ from app.extensions import db
 from .models import Wallet, RevenueCategory, RevenueTransaction, ExpenseGroup, ExpenseItem, Expense 
 from .forms import WalletForm, RevenueCategoryForm, RevenueTransactionForm, ExpenseGroupForm, ExpenseItemForm, ExpenseForm
 from config import Config
-from datetime import datetime, date
-from sqlalchemy import func
+from datetime import datetime, date, timedelta
+from sqlalchemy import func, and_, or_, extract
 from decimal import Decimal
 
 financeiro_bp = Blueprint('financeiro', __name__, template_folder='templates', url_prefix='/financeiro')
 footer = {'ano': Config.ANO_ATUAL, 'versao': Config.VERSAO_APP}
 
+def flash_form_errors(form):
+    for field_name, errors in form.errors.items():
+        for error in errors:
+            field_obj = getattr(form, field_name, None)
+            field_label = field_obj.label.text if field_obj and hasattr(field_obj, 'label') else field_name
+            flash(f"Erro no campo '{field_label}': {error}", 'danger')
+
 @financeiro_bp.route('/carteiras')
 @login_required
 def wallets():
-    """Lista todas as carteiras do usuário e permite adicionar uma nova."""
     wallets = Wallet.query.filter_by(user_id=current_user.id).all()
     form = WalletForm()
     return render_template('financeiro/wallets.html', wallets=wallets, form=form, title='Minhas Carteiras', **footer)
@@ -23,7 +29,6 @@ def wallets():
 @financeiro_bp.route('/carteiras/add', methods=['POST'])
 @login_required
 def add_wallet():
-    """Processa a adição de uma nova carteira."""
     form = WalletForm()
     if form.validate_on_submit():
         wallet = Wallet(
@@ -35,9 +40,7 @@ def add_wallet():
         db.session.commit()
         flash('Carteira adicionada com sucesso!', 'success')
     else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f"Erro no campo '{field}': {error}", 'danger')
+        flash_form_errors(form)
     
     return redirect(url_for('financeiro.wallets'))
 
@@ -66,9 +69,8 @@ def manage_wallet(wallet_id):
             flash('Carteira atualizada com sucesso!', 'success')
         db.session.commit()
     else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'Erro no formulário da Carteira: {error}', 'danger')
+        flash_form_errors(form)
+
     return redirect(url_for('financeiro.wallets'))
 
 @financeiro_bp.route('carteiras/delete/<int:wallet_id>', methods=['POST'])
@@ -91,35 +93,28 @@ def delete_wallet(wallet_id):
 
     return redirect(url_for('financeiro.wallets'))
 
-# ----------------------------------------------------------------------
-# 2. Rotas de Categorias de RECEITA (RevenueCategory)
-# ----------------------------------------------------------------------
 @financeiro_bp.route('/categorias-receita')
 @login_required
 def revenue_categories():
-    """Lista todas as categorias de receita do usuário e permite adicionar uma nova."""
-    # Renomeada de categories() para revenue_categories()
     categories = RevenueCategory.query.filter_by(user_id=current_user.id).order_by(RevenueCategory.name).all()
-    form = RevenueCategoryForm() # Formulário atualizado
-    # Template 'financeiro/categories.html' deve ser editado para remover a lógica 'type'
+    form = RevenueCategoryForm()
     return render_template('financeiro/categories.html', categories=categories, form=form, title='Categorias de Receita', **footer)
 
 @financeiro_bp.route('/categorias-receita/add', methods=['POST'])
 @login_required
 def add_revenue_category():
-    """Processa a adição de uma nova categoria de receita."""
-    form = RevenueCategoryForm() # Formulário atualizado
+    form = RevenueCategoryForm()
     if form.validate_on_submit():
         category = RevenueCategory(
             name=form.name.data,
-            type='R', # Força para 'R' (Receita)
+            type='R',
             user_id=current_user.id
         )
         db.session.add(category)
         db.session.commit()
         flash('Categoria de Receita adicionada com sucesso!', 'success')
     else:
-        flash('Erro ao adicionar categoria de receita. Verifique os dados.', 'danger')
+        flash_form_errors(form)
     
     return redirect(url_for('financeiro.revenue_categories'))
 
@@ -127,14 +122,13 @@ def add_revenue_category():
 @financeiro_bp.route('/categorias-receita/manage/<int:category_id>', methods=['POST'])
 @login_required
 def manage_revenue_category(category_id):
-    """Processa a adição (sem ID) ou edição (com ID) de uma categoria de receita."""
-    form = RevenueCategoryForm() # Formulário atualizado
+    form = RevenueCategoryForm()
 
     if form.validate_on_submit():
         if category_id is None:
             category = RevenueCategory(
                 name=form.name.data,
-                type='R', # Força para 'R' (Receita)
+                type='R',
                 user_id=current_user.id)
             db.session.add(category)
             flash('Categoria de Receita adicionada com sucesso!', 'success')
@@ -143,24 +137,22 @@ def manage_revenue_category(category_id):
             if category.user_id != current_user.id:
                 abort(403)
             category.name = form.name.data
-            category.type = 'R' # Mantém 'R'
+            category.type = 'R'
             flash('Categoria de Receita atualizada com sucesso!', 'success')
         db.session.commit()
     else:
-        flash('Erro ao processar o formulário da Categoria de Receita. Verifique os dados.', 'danger')
+        flash_form_errors(form)
     
     return redirect(url_for('financeiro.revenue_categories'))
 
 @financeiro_bp.route('categorias-receita/delete/<int:category_id>', methods=['POST'])
 @login_required
 def delete_revenue_category(category_id):
-    """Exclui uma categoria de receita, mas apenas se não houver transações ligadas a ela."""
     category = db.get_or_404(RevenueCategory, category_id)
 
     if category.user_id != current_user.id:
         abort(403)
         
-    # ATUALIZAÇÃO CRÍTICA: Checar RevenueTransaction
     if category.transactions.count() > 0:
         flash('Não é possivel excluir a categoria de Receita, pois há transações ligadas a ela.', 'danger')
         return redirect(url_for('financeiro.revenue_categories'))
@@ -171,9 +163,6 @@ def delete_revenue_category(category_id):
 
     return redirect(url_for('financeiro.revenue_categories'))
     
-# ----------------------------------------------------------------------
-# 3. Rotas de Configuração de Despesa (ExpenseGroup e ExpenseItem)
-# ----------------------------------------------------------------------
 @financeiro_bp.route('/configuracao-despesa')
 @login_required
 def expense_config():
@@ -185,9 +174,7 @@ def expense_config():
     form_group = ExpenseGroupForm()
     form_item = ExpenseItemForm()
     
-    # O QuerySelectField é populado automaticamente pelo query_factory no forms.py
-    
-    return render_template('financeiro/expense_config.html', # Novo template
+    return render_template('financeiro/expense_config.html',
                            groups=groups,
                            items=items,
                            form_group=form_group,
@@ -208,8 +195,7 @@ def add_expense_group():
         db.session.commit()
         flash('Grupo de Despesa adicionado com sucesso!', 'success')
     else:
-        # Erro de validação: melhor prática seria retornar com o formulário, mas redirecionamos para simplicidade
-        flash('Erro ao adicionar Grupo de Despesa. Verifique os dados.', 'danger')
+        flash_form_errors(form)
     return redirect(url_for('financeiro.expense_config'))
 
 @financeiro_bp.route('/configuracao-despesa/item/add', methods=['POST'])
@@ -229,7 +215,7 @@ def add_expense_item():
         db.session.commit()
         flash('Item de Despesa adicionado com sucesso!', 'success')
     else:
-        flash('Erro ao adicionar Item de Despesa. Verifique os dados.', 'danger')
+        flash_form_errors(form)
     return redirect(url_for('financeiro.expense_config'))
 
 # Rotas de DELETE para a hierarquia de despesa (Simplificado)
@@ -254,7 +240,6 @@ def delete_expense_item(item_id):
     item = db.get_or_404(ExpenseItem, item_id)
     if item.user_id != current_user.id:
         abort(403)
-    # ATUALIZAÇÃO CRÍTICA: Checar Expense
     if item.expenses.count() > 0:
         flash('Não é possível excluir o item, pois há despesas ligadas a ele.', 'danger')
         return redirect(url_for('financeiro.expense_config'))
@@ -264,17 +249,9 @@ def delete_expense_item(item_id):
     flash('Item de Despesa excluído com sucesso!', 'info')
     return redirect(url_for('financeiro.expense_config'))
 
-
-# ----------------------------------------------------------------------
-# 4. Rotas de RECEITAS (RevenueTransaction) - SUBSTITUEM AS DE TRANSACTION
-# ----------------------------------------------------------------------
-
-# REDIRECIONAMENTOS (CRÍTICOS)
-# As rotas antigas de /transacoes devem ser redirecionadas para as novas, evitando links quebrados.
 @financeiro_bp.route('/transacoes')
 @login_required
 def transactions():
-    # Rota antiga de listagem de transações deve ser redirecionada para Despesas
     return redirect(url_for('financeiro.expenses')) 
 
 @financeiro_bp.route('/transacoes/add', methods=['GET', 'POST'])
@@ -352,7 +329,7 @@ def add_revenue():
         flash('Receita registrada com sucesso!', 'success')
         return redirect(url_for('main.index'))
     
-    return render_template('financeiro/revenue_form.html', # Novo template
+    return render_template('financeiro/revenue_form.html',
                            form=form, 
                            title='Nova Receita',
                            is_edit=False,
@@ -360,22 +337,18 @@ def add_revenue():
 
 @financeiro_bp.route('/receitas/edit/<int:revenue_id>', methods=['GET', 'POST'])
 @login_required
-def edit_revenue(revenue_id):
-    """Rota para editar uma RECEITA existente."""
-    
-    revenue = db.get_or_404(RevenueTransaction, revenue_id) # Novo Modelo
+def edit_revenue(revenue_id):    
+    revenue = db.get_or_404(RevenueTransaction, revenue_id)
     if revenue.user_id != current_user.id:
         abort(403)
         
-    form = RevenueTransactionForm(obj=revenue) # Novo Formulário
+    form = RevenueTransactionForm(obj=revenue)
     
     if request.method == 'GET':
-        # Popula os campos customizados no GET
         form.description.data = revenue.description
         form.amount.data = revenue.amount
         form.date.data = revenue.date
-        
-        # NOTE: A QuerySelectField requer que o objeto seja setado, não apenas o ID.
+
         form.wallet.data = revenue.wallet
         form.category.data = revenue.category
 
@@ -383,7 +356,6 @@ def edit_revenue(revenue_id):
         revenue.description = form.description.data
         revenue.amount = form.amount.data
         revenue.date = form.date.data
-        # Type e recorrência são ignorados/mantidos 'R'/False
             
         revenue.wallet_id = form.wallet.data.id
         revenue.category_id = form.category.data.id
@@ -402,8 +374,7 @@ def edit_revenue(revenue_id):
 @financeiro_bp.route('/receitas/delete/<int:revenue_id>', methods=['POST'])
 @login_required
 def delete_revenue(revenue_id):
-    """Rota para excluir uma RECEITA."""
-    revenue = db.get_or_404(RevenueTransaction, revenue_id) # Novo Modelo
+    revenue = db.get_or_404(RevenueTransaction, revenue_id)
     
     if revenue.user_id != current_user.id:
         abort(403)
@@ -419,24 +390,16 @@ def delete_revenue(revenue_id):
         
     return redirect(url_for('financeiro.revenues'))
 
-# ----------------------------------------------------------------------
-# 5. Rotas de DESPESAS (Expense)
-# ----------------------------------------------------------------------
 @financeiro_bp.route('/despesas')
 @login_required
 def expenses():
-    """Lista todas as Despesas (pagas e pendentes) do usuário."""
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
     now_date = date.today()
     
-    # Base query (não filtrada por status ainda)
     base_query = Expense.query.filter_by(user_id=current_user.id) 
 
-    # --- NOVO: CÁLCULO DE TOTAIS NÃO PAGINADOS (Backend) ---
-    
-    # Total Pago (Todos os registros, independente da página)
     total_paid_query = db.session.scalar(
         db.select(func.coalesce(func.sum(Expense.amount), Decimal(0))).where(
             Expense.user_id == current_user.id,
@@ -445,7 +408,6 @@ def expenses():
     )
     total_paid_amount = total_paid_query if total_paid_query is not None else Decimal(0)
     
-    # Total Pendente (Todos os registros, independente da página)
     total_pending_query = db.session.scalar(
         db.select(func.coalesce(func.sum(Expense.amount), Decimal(0))).where(
             Expense.user_id == current_user.id,
@@ -481,8 +443,7 @@ def expenses():
 @financeiro_bp.route('/despesas/add', methods=['GET', 'POST'])
 @login_required
 def add_expense():
-    """Rota para adicionar uma nova DESPESA."""
-    form = ExpenseForm() # Novo formulário
+    form = ExpenseForm()
     
     if not current_user.wallets.first():
         flash('Você precisa adicionar pelo menos uma Carteira antes de registrar uma Despesa!', 'warning')
@@ -494,7 +455,7 @@ def add_expense():
     if form.validate_on_submit():
         is_paid = (form.status.data == 'paid')
         
-        expense = Expense( # Novo Modelo
+        expense = Expense(
             description=form.description.data,
             amount=form.amount.data,
             date=form.date.data,
@@ -507,7 +468,7 @@ def add_expense():
             
             user_id=current_user.id,
             wallet_id=form.wallet.data.id,
-            item_id=form.item.data.id # Novo relacionamento
+            item_id=form.item.data.id
         )
         
         db.session.add(expense)
@@ -517,11 +478,10 @@ def add_expense():
         flash(msg, 'success')
         return redirect(url_for('financeiro.expenses'))
     
-    # Popula o formulário para GET/erros (opcional, mas bom para UX)
     if request.method == 'GET' and not form.status.data:
-        form.status.data = 'pending' # Default para pendente
+        form.status.data = 'pending'
 
-    return render_template('financeiro/expense_form.html', # Novo template
+    return render_template('financeiro/expense_form.html',
                            form=form, 
                            title='Novo Lançamento de Despesa',
                            is_edit=False,
@@ -529,21 +489,16 @@ def add_expense():
 
 @financeiro_bp.route('/despesas/edit/<int:expense_id>', methods=['GET', 'POST'])
 @login_required
-def edit_expense(expense_id):
-    """Rota para editar uma DESPESA existente."""
-    
-    expense = db.get_or_404(Expense, expense_id) # Novo Modelo
+def edit_expense(expense_id):    
+    expense = db.get_or_404(Expense, expense_id)
     if expense.user_id != current_user.id:
         abort(403)
-        
-    # obj=expense popula os campos do modelo (description, amount, date, due_date...)
-    form = ExpenseForm(obj=expense) # Novo Formulário
+    form = ExpenseForm(obj=expense)
     
     if request.method == 'GET':
         form.status.data = 'paid' if expense.is_paid else 'pending'
         form.payment_date.data = expense.payment_date.date() if expense.payment_date else None
         
-        # Popula QuerySelectFields
         form.item.data = expense.item
         form.wallet.data = expense.wallet
 
@@ -575,7 +530,7 @@ def edit_expense(expense_id):
         return redirect(url_for('financeiro.expenses'))
         
     
-    return render_template('financeiro/expense_form.html', # Novo template
+    return render_template('financeiro/expense_form.html',
                            form=form, 
                            title='Editar Despesa',
                            is_edit=True,
@@ -584,8 +539,7 @@ def edit_expense(expense_id):
 @financeiro_bp.route('/despesas/delete/<int:expense_id>', methods=['POST'])
 @login_required
 def delete_expense(expense_id):
-    """Rota para excluir uma DESPESA."""
-    expense = db.get_or_404(Expense, expense_id) # Novo Modelo
+    expense = db.get_or_404(Expense, expense_id)
     
     if expense.user_id != current_user.id:
         abort(403)
@@ -604,7 +558,6 @@ def delete_expense(expense_id):
 @financeiro_bp.route('/despesas/pay/<int:expense_id>', methods=['POST'])
 @login_required
 def pay_expense(expense_id):
-    """Rota para dar baixa em uma DESPESA PENDENTE."""
     expense = db.get_or_404(Expense, expense_id)
     
     if expense.user_id != current_user.id:
@@ -615,7 +568,7 @@ def pay_expense(expense_id):
         return redirect(url_for('financeiro.expenses'))
         
     expense.is_paid = True
-    expense.payment_date = datetime.utcnow() # Marca com a data atual UTC
+    expense.payment_date = datetime.utcnow()
     
     try:
         db.session.commit()

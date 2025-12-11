@@ -8,7 +8,6 @@
 
 {% block content %}
 
-{# O CÁLCULO FOI MOVIDO PARA O PYTHON (ROUTES.PY) #}
 {% set total_pagas_valor = total_paid_amount %}
 {% set total_pendentes_valor = total_pending_amount %}
 
@@ -30,25 +29,37 @@
     <div class="col-lg-10">
         <div class="card border-0 shadow-sm bg-light">
             <div class="card-body py-3">
-                {# FILTROS AQUI #}
                 <form method="GET" action="{{ url_for('financeiro.expenses') }}" class="row g-2 align-items-end">
                     <div class="col-md-3">
                         <label class="small text-muted fw-bold">Descrição</label>
-                        <input type="text" name="desc_filter" class="form-control form-select-sm" placeholder="Buscar...">
+                        <input type="text" name="desc_filter" class="form-control form-select-sm" placeholder="Buscar..." value="{{ desc_filter if desc_filter }}">
                     </div>
                     <div class="col-md-3">
                         <label class="small text-muted fw-bold">Item de Despesa</label>
-                        <select name="item_filter" class="form-select form-select-sm" id="expense_item_filter_select2"></select>
+                        <select name="item_filter" class="form-select form-select-sm" id="expense_item_filter_select2">
+                             <option value="">Todos os Itens</option>
+                             {% for id, name in expense_item_choices %}
+                                <option value="{{ id }}" {% if id == item_filter_id %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="col-md-2">
                          <label class="small text-muted fw-bold">Recorrência</label>
-                        <select name="recurrency_filter" class="form-select form-select-sm" id="recorrencia_filtro_select2"></select>
+                        <select name="recurrency_filter" class="form-select form-select-sm" id="recorrencia_filtro_select2">
+                             <option value="">Toda Recorrência</option>
+                             <option value="Isolada" {% if recurrency_filter == 'Isolada' %}selected{% endif %}>Isolada</option>
+                             <option value="Recorrente" {% if recurrency_filter == 'Recorrente' %}selected{% endif %}>Recorrente (Geral)</option>
+                             <option value="daily" {% if recurrency_filter == 'daily' %}selected{% endif %}>Diária</option>
+                             <option value="weekly" {% if recurrency_filter == 'weekly' %}selected{% endif %}>Semanal</option>
+                             <option value="monthly" {% if recurrency_filter == 'monthly' %}selected{% endif %}>Mensal</option>
+                             <option value="yearly" {% if recurrency_filter == 'yearly' %}selected{% endif %}>Anual</option>
+                        </select>
                     </div>
                     <div class="col-md-3">
                         <label class="small text-muted fw-bold">Período (De / Até)</label>
                         <div class="input-group input-group-sm">
-                            <input type="date" name="date_start" class="form-control">
-                            <input type="date" name="date_end" class="form-control">
+                            <input type="date" name="date_start" class="form-control" value="{{ date_start if date_start }}">
+                            <input type="date" name="date_end" class="form-control" value="{{ date_end if date_end }}">
                         </div>
                     </div>
                     <div class="col-md-1">
