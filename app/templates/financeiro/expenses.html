@@ -92,7 +92,6 @@
 
 <div class="tab-content" id="despesasTabsContent">
     
-    {# AB A - DESPESAS PAGAS #}
     <div class="tab-pane fade show active" id="pagas-content" role="tabpanel">
         <div class="card border-0 shadow-sm rounded-4">
             
@@ -111,7 +110,9 @@
                     <tbody>
                         {% for t in paid_expenses %}
                         <tr class="bg-white border-bottom">
-                            <td class="ps-4 font-monospace py-2">{{ t.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="ps-4 font-monospace py-2">
+                                {{ t.payment_date.strftime('%d/%m/%Y') if t.payment_date else 'N/A' }}
+                            </td>
                             <td class="py-2"><span class="fw-bold text-dark">{{ t.description }}</span></td>
                             <td class="py-2">
                                 <span class="fw-bold text-dark">{{ t.item.name }}</span>
@@ -147,7 +148,9 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center small mb-2">
                             <span class="badge bg-light text-danger border fw-normal rounded-pill">{{ t.item.name }} ({{ t.item.group.name }})</span>
-                            <span class="text-muted font-monospace">{{ t.payment_date.strftime('%d/%m/%Y') }}</span>
+                            <span class="text-muted font-monospace">
+                                {{ t.payment_date.strftime('%d/%m/%Y') if t.payment_date else 'N/A' }}
+                            </span>
                         </div>
                         
                         <div class="d-flex justify-content-end gap-2 border-top pt-2 mt-2">

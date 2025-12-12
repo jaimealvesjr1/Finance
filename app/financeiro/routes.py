@@ -533,7 +533,13 @@ def edit_revenue(revenue_id):
         flash('Receita atualizada com sucesso!', 'success')
         return redirect(url_for('financeiro.revenues'))
     
-    return render_template('financeiro/revenue_form.html', form=form, title='Editar Receita', is_edit=True, transaction_id=revenue_id, **footer)
+    return render_template('financeiro/revenue_form.html',
+                           form=form,
+                           title='Editar Receita',
+                           is_edit=True,
+                           transaction_id=revenue_id, 
+                           revenue=revenue,
+                           **footer)
 
 @financeiro_bp.route('/receitas/delete/<int:revenue_id>', methods=['POST'])
 @login_required

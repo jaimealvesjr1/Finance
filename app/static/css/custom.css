@@ -312,14 +312,19 @@ a {
    ========================================= */
 @media (max-width: 767.98px) {
   .sidebar-wrapper {
-    width: 280px; 
-    transition: none !important; 
+    transform: translateX(-100%); /* Oculta a sidebar por padrão no mobile */
+    width: 280px; /* Largura ligeiramente maior para toque */
+    transition: none !important; /* Garante que o Bootstrap controle a animação */
+  }
+
+  .sidebar-wrapper.show {
+    transform: translateX(0);
   }
 
   .main-content {
     margin-left: 0; /* Remove a margem esquerda */
-    padding: 1rem;
-    padding-top: 4rem; /* Espaço para a topbar mobile */
+    padding: 1rem 0; 
+    padding-top: 4rem; /* Mantém o espaço para a topbar mobile */
   }
   
   /* Topbar Mobile (Visível apenas em telas pequenas) */

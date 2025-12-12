@@ -15,7 +15,9 @@
         <h2 class="mb-0"><strong>Gestão de Receitas</strong></h2>
     </div>
     <div>
-        {{ primary('+ Nova Receita', url_for('financeiro.add_revenue')) }}
+        <a href="{{ url_for('financeiro.add_revenue') }}" class="btn btn-success shadow-sm">
+            <i class="bi bi-plus-lg me-2"></i>Nova Receita
+        </a>
     </div>
 </div>
 
@@ -103,7 +105,9 @@
                     <tbody>
                         {% for t in received_revenues %}
                         <tr class="bg-white border-bottom-light">
-                            <td class="ps-4 py-3 text-muted font-monospace">{{ t.receipt_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="ps-4 py-3 text-muted font-monospace">
+                                {{ t.receipt_date.strftime('%d/%m/%Y') if t.receipt_date else 'N/A' }}
+                            </td>
                             <td class="fw-medium text-dark">{{ t.description }}</td>
                             <td><span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span></td>
                             <td><span class="badge bg-light text-success border fw-normal rounded-pill px-3">{{ t.category.name }}</span></td>
@@ -119,7 +123,6 @@
                     </tbody>
                 </table>
             </div>
-            
             <div class="d-md-none p-3"> 
                 {% for t in received_revenues %}
                 <div class="card shadow-sm border-0 mb-3 border-start border-4 border-success">
@@ -130,7 +133,9 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center small mb-2">
                             <span class="badge bg-light text-success border fw-normal rounded-pill">{{ t.category.name }} ({{ t.wallet.name }})</span>
-                            <span class="text-muted font-monospace">{{ t.receipt_date.strftime('%d/%m/%Y') }}</span>
+                            <span class="text-muted font-monospace">
+                                {{ t.receipt_date.strftime('%d/%m/%Y') if t.receipt_date else 'N/A' }}
+                            </span>
                         </div>
                         
                         <div class="d-flex justify-content-end gap-2 border-top pt-2 mt-2">
@@ -143,7 +148,7 @@
                     <div class="text-center py-5 text-muted">Nenhuma receita recebida encontrada.</div>
                 {% endfor %}
             </div>
-            </div>
+        </div>
         {{ render_pagination(pagination, 'financeiro.revenues') }}
     </div>
 
@@ -213,7 +218,7 @@
                 </table>
             </div>
 
-            <div class="d-md-none p-3"> 
+            <div class="d-md-none p-3">
                 {% for t in receivable_revenues %}
                     {% set dias_restantes = (t.due_date - now_date).days %}
                     {% set status_text = "Atrasado" if dias_restantes < 0 else ("Vence Hoje!" if dias_restantes == 0 else "") %}

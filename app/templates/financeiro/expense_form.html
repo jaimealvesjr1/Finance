@@ -13,7 +13,7 @@
                     {{ title }}
                 </h3>
             </div>
-            <div class="card-body p-5">
+            <div class="card-body">
                 {% if is_edit %}
                     {% set form_action = url_for('financeiro.edit_expense', expense_id=expense_id) %}
                     {% set btn_class = 'btn-warning text-white' %}
@@ -30,7 +30,7 @@
                             {{ field(form.description, placeholder="Ex: Pagamento Aluguel, Conta de Luz") }}
                         </div>
                         <div class="col-md-4">
-                            {{ field(form.amount, placeholder="0.00", class="form-control form-control-lg fw-bold text-end") }}
+                            {{ field(form.amount, placeholder="0.00", class="form-control fw-bold text-danger text-end") }}
                         </div>
                     </div>
                     
@@ -45,22 +45,22 @@
                     
                     <hr class="my-4">
                     <h5 class="fw-bold text-muted mb-3">Fluxo de Caixa e Status</h5>
-                    
+
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             {{ field(form.status, id="status_field") }}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             {{ field(form.due_date) }}
                         </div>
                     </div>
-                    
+
                     <div class="row" id="payment_dates_row">
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             {{ field(form.date, label="Data de Registro/Competência") }}
                         </div>
-                        <div class="col-md-6" id="payment_date_div">
-                             {{ field(form.payment_date) }}
+                        <div class="col-12 col-md-6" id="payment_date_div">
+                            {{ field(form.payment_date) }}
                         </div>
                     </div>
 
@@ -83,12 +83,14 @@
                     </div>
                     {% endif %}
                     
-                    <div class="gap-2">
-                        {{ submit('Salvar Despesa', class=btn_class + " flex-grow-1") }}
+                    <div class="d-flex gap-2 mt-4 align-items-stretch">
+                        <button type="submit" class="btn {{ btn_class }} flex-grow-1" style="width:100%;">
+                            <strong>Salvar Despesa</strong>
+                        </button>
                         
                         {% if is_edit %}
-                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                            <i class="bi bi-trash"></i>
+                        <button type="button" class="btn btn-outline-danger py-2" data-bs-toggle="modal" data-bs-target="#deleteModal" title="Excluir Lançamento">
+                            <i class="bi bi-trash fs-5"></i>
                         </button>
                         {% endif %}
                     </div>

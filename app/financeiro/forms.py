@@ -59,7 +59,7 @@ class ExpenseItemForm(FlaskForm):
 
 
 class RevenueTransactionForm(FlaskForm):
-    description = StringField('Descrição da Receita', validators=[
+    description = StringField('Descrição', validators=[
         DataRequired(), 
         Length(max=255)
     ])
@@ -69,14 +69,14 @@ class RevenueTransactionForm(FlaskForm):
     ])
     
     due_date = DateField('Data de Vencimento', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
-    date = DateField('Data de Competência/Registro', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
+    date = DateField('Data de Lançamento', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
     
     status = SelectField('Situação', choices=[
-        ('pending', 'A Receber (Agendado)'), 
-        ('received', 'Recebido (Realizado)')
+        ('pending', 'A Receber'), 
+        ('received', 'Recebido')
     ], validators=[DataRequired()])
     
-    receipt_date = DateField('Data de Recebimento (Opcional)', format='%Y-%m-%d', validators=[Optional()])
+    receipt_date = DateField('Data de Recebimento', format='%Y-%m-%d', validators=[Optional()])
 
     wallet = QuerySelectField(
         'Carteira/Conta',
@@ -96,9 +96,8 @@ class RevenueTransactionForm(FlaskForm):
         validators=[DataRequired(message="Selecione uma categoria de receita.")]
     )
 
-    is_recurrent = BooleanField('Transação Recorrente?')
-    num_repetitions = SelectField('Repetir Quantas Vezes?', choices=[
-        ('0', 'Apenas este lançamento'),
+    is_recurrent = BooleanField('Transação se repete?')
+    num_repetitions = SelectField('Repetir quantas vezes?', choices=[
         ('1', '1 vez'),
         ('2', '2 vezes'), 
         ('3', '3 vezes'), 
@@ -113,7 +112,6 @@ class RevenueTransactionForm(FlaskForm):
     ], default='0', validators=[Optional()])
 
     frequency = SelectField('Frequência de Recorrência', choices=[
-        ('', 'Não Recorrente'),
         ('daily', 'Diária'), 
         ('weekly', 'Semanal'), 
         ('monthly', 'Mensal'), 
@@ -142,7 +140,7 @@ class RevenueTransactionForm(FlaskForm):
             raise ValidationError('A data de vencimento não pode ser anterior à data de registro.')
     
 class ExpenseForm(FlaskForm):
-    description = StringField('Descrição da Despesa', validators=[
+    description = StringField('Descrição', validators=[
         DataRequired(), 
         Length(max=255)
     ])
@@ -152,14 +150,14 @@ class ExpenseForm(FlaskForm):
     ])
     
     due_date = DateField('Data de Vencimento', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
-    date = DateField('Data de Competência/Registro', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
+    date = DateField('Data de Lançamento', default=date.today, format='%Y-%m-%d', validators=[DataRequired()])
 
     status = SelectField('Situação', choices=[
-        ('pending', 'A Pagar (Agendado)'), 
-        ('paid', 'Pago (Realizado)')
+        ('pending', 'A Pagar'), 
+        ('paid', 'Pago')
     ], validators=[DataRequired()])
     
-    payment_date = DateField('Data de Pagamento (Opcional)', format='%Y-%m-%d', validators=[Optional()])
+    payment_date = DateField('Data de Pagamento', format='%Y-%m-%d', validators=[Optional()])
 
     item = QuerySelectField(
         'Item de Despesa',
@@ -171,7 +169,7 @@ class ExpenseForm(FlaskForm):
     )
     
     wallet = QuerySelectField(
-        'Carteira/Conta de Pagamento',
+        'Carteira/Conta',
         query_factory=get_user_wallets,
         get_pk=lambda a: a.id,
         get_label=lambda a: a.name,
@@ -181,8 +179,7 @@ class ExpenseForm(FlaskForm):
 
     is_recurrent = BooleanField('Despesa Recorrente?')
     
-    num_repetitions = SelectField('Repetir Quantas Vezes?', choices=[
-        ('0', 'Apenas este lançamento'),
+    num_repetitions = SelectField('Repetir quantas vezes?', choices=[
         ('1', '1 vez'),
         ('2', '2 vezes'), 
         ('3', '3 vezes'), 
@@ -197,7 +194,6 @@ class ExpenseForm(FlaskForm):
     ], default='0', validators=[Optional()])
     
     frequency = SelectField('Frequência de Recorrência', choices=[
-        ('', 'Não Recorrente'),
         ('daily', 'Diária'), 
         ('weekly', 'Semanal'), 
         ('monthly', 'Mensal'), 

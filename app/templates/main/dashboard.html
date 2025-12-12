@@ -12,7 +12,7 @@
         
         <div class="card p-4 mt-5 shadow-lg border-0 bg-light">
             <h5 class="mb-3">Como Reativar?</h5>
-            <p>Acesse **Meu Perfil** para verificar sua data de vencimento e entre em contato com o Administrador para efetuar o pagamento e liberar o acesso.</p>
+            <p>Acesse <strong>Meu Perfil</strong> para verificar sua data de vencimento e entre em contato com o Administrador para liberar o acesso.</p>
             <a href="{{ url_for('auth.profile') }}" class="btn btn-danger btn-lg mt-3">
                 <i class="bi bi-person-fill me-2"></i> Ir para Meu Perfil
             </a>
@@ -25,24 +25,46 @@
 {% else %}
 <div class="d-flex justify-content-between align-items-center mb-5">
     <div>
-        <h2 class="mb-1"><strong>Visão Geral Financeira</strong></h2>
-        <p class="text-muted mb-0">Fluxo de caixa e resumo do mês atual.</p>
+        <h2 class="mb-1"><strong>Dashboard</strong></h2>
+        <p class="text-muted mb-0">Resumo do mês atual.</p>
     </div>
+    
     <div class="d-flex gap-2">
-        <a href="{{ url_for('financeiro.add_revenue') }}" class="btn btn-success shadow-sm">
+        
+        <a href="{{ url_for('financeiro.add_revenue') }}" class="btn btn-success shadow-sm d-none d-md-inline-flex align-items-center">
             <i class="bi bi-plus-lg me-2"></i>Nova Receita
         </a>
-        <a href="{{ url_for('financeiro.add_expense') }}" class="btn btn-danger shadow-sm">
+        <a href="{{ url_for('financeiro.add_expense') }}" class="btn btn-danger shadow-sm d-none d-md-inline-flex align-items-center">
             <i class="bi bi-plus-lg me-2"></i>Nova Despesa
         </a>
-        <a href="{{ url_for('financeiro.categories_config') }}" class="btn btn-outline-secondary" title="Configurar Plano de Contas">
+        
+        <div class="dropdown d-md-none">
+            <button class="btn btn-primary shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Adicionar Transação">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li>
+                    <a class="dropdown-item text-success fw-bold" href="{{ url_for('financeiro.add_revenue') }}">
+                        <i class="bi bi-arrow-up-circle me-2"></i> Nova Receita
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item text-danger fw-bold" href="{{ url_for('financeiro.add_expense') }}">
+                        <i class="bi bi-arrow-down-circle me-2"></i> Nova Despesa
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <a href="{{ url_for('financeiro.categories_config') }}" class="btn btn-outline-secondary shadow-sm" title="Configurar Plano de Contas">
             <i class="bi bi-gear-fill"></i>
+            <span class="d-none d-md-inline ms-2">Configurações</span>
         </a>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
-    {# 1. Cards KPI: Receitas Recebidas (Executado) #}
+    {# 1. Cards KPI: Receitas Recebidas (Executado) - CORRIGIDO PARA col-6 #}
     <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100 overflow-hidden">
             <div class="card-body position-relative">
@@ -59,7 +81,7 @@
         </div>
     </div>
 
-    {# 1. Cards KPI: Despesas Pagas (Executado) #}
+    {# 1. Cards KPI: Despesas Pagas (Executado) - CORRIGIDO PARA col-6 #}
     <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100 overflow-hidden">
             <div class="card-body position-relative">
@@ -76,7 +98,7 @@
         </div>
     </div>
     
-    {# 1. Cards KPI: Receitas a Receber (Previsto) #}
+    {# 1. Cards KPI: Receitas a Receber (Previsto) - CORRIGIDO PARA col-6 #}
     <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100 overflow-hidden">
             <div class="card-body position-relative">
@@ -93,7 +115,7 @@
         </div>
     </div>
 
-    {# 1. Cards KPI: Saldo Total (Atual) #}
+    {# 1. Cards KPI: Saldo Total (Atual) - CORRIGIDO PARA col-6 #}
     <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm h-100 bg-light">
             <div class="card-body p-3 d-flex flex-column justify-content-center">
