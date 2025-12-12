@@ -98,6 +98,7 @@ class RevenueTransactionForm(FlaskForm):
 
     is_recurrent = BooleanField('Transação se repete?')
     num_repetitions = SelectField('Repetir quantas vezes?', choices=[
+        ('0', 'Apenas este lançamento'),
         ('1', '1 vez'),
         ('2', '2 vezes'), 
         ('3', '3 vezes'), 
@@ -112,6 +113,7 @@ class RevenueTransactionForm(FlaskForm):
     ], default='0', validators=[Optional()])
 
     frequency = SelectField('Frequência de Recorrência', choices=[
+        ('', 'Não Recorrente'),
         ('daily', 'Diária'), 
         ('weekly', 'Semanal'), 
         ('monthly', 'Mensal'), 
@@ -180,6 +182,7 @@ class ExpenseForm(FlaskForm):
     is_recurrent = BooleanField('Despesa Recorrente?')
     
     num_repetitions = SelectField('Repetir quantas vezes?', choices=[
+        ('0', 'Apenas este lançamento'),
         ('1', '1 vez'),
         ('2', '2 vezes'), 
         ('3', '3 vezes'), 
@@ -194,6 +197,7 @@ class ExpenseForm(FlaskForm):
     ], default='0', validators=[Optional()])
     
     frequency = SelectField('Frequência de Recorrência', choices=[
+        ('', 'Não Recorrente'),
         ('daily', 'Diária'), 
         ('weekly', 'Semanal'), 
         ('monthly', 'Mensal'), 
