@@ -132,26 +132,16 @@ def add_wallet():
 @financeiro_bp.route('/carteiras/manage/<int:wallet_id>', methods=['POST'])
 @login_required
 def manage_wallet(wallet_id):
-    """Processa a adição (sem ID) ou edição (com ID) de uma carteira."""
+    wallet = db.get_or_404(Wallet, wallet_id)
+    if wallet.user_id != current_user.id:
+        abort(403)
+    
     form = WalletForm()
-
-    if form.validate_on_submit():
-        if wallet_id is None:
-            wallet = Wallet(
-                name=form.name.data,
-                initial_balance=form.initial_balance.data,
-                user_id=current_user.id)
-            db.session.add(wallet)
-            flash('Carteira adicionada com sucesso!', 'success')
-        else:
-            wallet = db.get_or_404(Wallet, wallet_id)
-            if wallet.user_id != current_user.id:
-                abort(403)
-            # CORREÇÃO: Atribuição correta
-            wallet.name = form.name.data
-            wallet.initial_balance = form.initial_balance.data 
-            flash('Carteira atualizada com sucesso!', 'success')
+    
+    if form.name.data:
+        wallet.name = form.name.data
         db.session.commit()
+        flash('Nome da Carteira atualizado com sucesso!', 'success')
     else:
         flash_form_errors(form)
 
