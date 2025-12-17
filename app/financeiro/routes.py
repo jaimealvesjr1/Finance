@@ -84,6 +84,32 @@ def transfer():
     
     return redirect(url_for('financeiro.wallets'))
 
+@financeiro_bp.route('/transferencia/desfazer/<int:transfer_id>', methods=['POST'])
+@login_required
+def undo_transfer(transfer_id):
+    transfer = db.get_or_404(Transfer, transfer_id)
+    if transfer.user_id != current_user.id:
+        abort(403)
+        
+    try:
+        amount = transfer.amount
+        source_wallet = transfer.source_wallet
+        target_wallet = transfer.target_wallet
+        
+        target_wallet.initial_balance -= amount
+        source_wallet.initial_balance += amount
+        
+        db.session.delete(transfer)
+        db.session.commit()
+        
+        flash(f'Transferência de R${amount:.2f} (de {source_wallet.name} para {target_wallet.name}) desfeita com sucesso!', 'info')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao desfazer a transferência: {e}', 'danger')
+        
+    return redirect(url_for('financeiro.wallets'))
+
 @financeiro_bp.route('/carteiras/add', methods=['POST'])
 @login_required
 def add_wallet():
@@ -129,6 +155,33 @@ def manage_wallet(wallet_id):
     else:
         flash_form_errors(form)
 
+    return redirect(url_for('financeiro.wallets'))
+
+@financeiro_bp.route('/carteiras/editar-saldo-inicial/<int:wallet_id>', methods=['POST'])
+@login_required
+def manage_initial_balance(wallet_id):
+    wallet = db.get_or_404(Wallet, wallet_id)
+    if wallet.user_id != current_user.id:
+        abort(403)
+        
+    try:
+        new_balance = request.form.get('new_initial_balance', type=Decimal)
+        
+        if new_balance is None:
+            flash('Novo saldo inicial inválido.', 'danger')
+            return redirect(url_for('financeiro.wallets'))
+
+        old_balance = wallet.initial_balance
+        
+        wallet.initial_balance = new_balance
+        db.session.commit()
+        
+        flash(f'Saldo inicial da carteira {wallet.name} alterado de {old_balance:.2f} para {new_balance:.2f} com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao alterar o saldo inicial: {e}', 'danger')
+        
     return redirect(url_for('financeiro.wallets'))
 
 @financeiro_bp.route('carteiras/delete/<int:wallet_id>', methods=['POST'])
@@ -323,6 +376,7 @@ def revenues():
 
     desc_filter = request.args.get('desc_filter')
     cat_filter_id = request.args.get('category_filter', type=int)
+    wallet_filter_id = request.args.get('wallet_filter', type=int)
     date_start = request.args.get('date_start')
     date_end = request.args.get('date_end')
 
@@ -331,6 +385,9 @@ def revenues():
     
     if cat_filter_id:
         filters.append(RevenueTransaction.category_id == cat_filter_id)
+
+    if wallet_filter_id:
+        filters.append(RevenueTransaction.wallet_id == wallet_filter_id)
         
     if date_start:
         filters.append(RevenueTransaction.date >= datetime.strptime(date_start, '%Y-%m-%d').date())
@@ -362,7 +419,11 @@ def revenues():
     received_revenues = received_pagination.items
     
     form = RevenueTransactionForm() 
-    category_choices = [(c.id, c.name) for c in current_user.categories]
+    
+    revenue_category_choices = [(c.id, c.name) for c in current_user.categories.all()] 
+    
+    wallets = Wallet.query.filter_by(user_id=current_user.id).order_by(Wallet.name).all()
+    wallet_choices = [(w.id, w.name) for w in wallets]
 
     return render_template('financeiro/revenues.html', 
                            received_revenues=received_revenues,
@@ -374,9 +435,11 @@ def revenues():
                            now_date=now_date,
                            desc_filter=desc_filter,
                            cat_filter_id=cat_filter_id,
+                           wallet_filter_id=wallet_filter_id,
                            date_start=date_start,
                            date_end=date_end,
-                           category_choices=category_choices,
+                           revenue_category_choices=revenue_category_choices,
+                           wallet_choices=wallet_choices,
                            **footer)
 
 @financeiro_bp.route('/receitas/add', methods=['GET', 'POST'])
@@ -575,6 +638,7 @@ def expenses():
     desc_filter = request.args.get('desc_filter')
     item_filter_id = request.args.get('item_filter', type=int)
     recurrency_filter = request.args.get('recurrency_filter')
+    wallet_filter_id = request.args.get('wallet_filter', type=int)
     date_start = request.args.get('date_start')
     date_end = request.args.get('date_end')
     
@@ -584,7 +648,10 @@ def expenses():
         filters.append(Expense.description.ilike(f'%{desc_filter}%'))
     
     if item_filter_id:
-        filters.append(Expense.category_id == item_filter_id) 
+        filters.append(Expense.category_id == item_filter_id)
+    
+    if wallet_filter_id:
+        filters.append(Expense.wallet_id == wallet_filter_id)
         
     if recurrency_filter and recurrency_filter == 'Isolada':
         filters.append(Expense.is_recurrent == False)
@@ -632,9 +699,12 @@ def expenses():
                                      .order_by(ExpenseCategory.name) \
                                      .all()
     expense_category_choices = [(category.id, category.name) for category in expense_categories]
+
+    wallets = Wallet.query.filter_by(user_id=current_user.id).order_by(Wallet.name).all()
+    wallet_choices = [(w.id, w.name) for w in wallets]
     
     form = ExpenseForm()
-    frequency_choices = {key: label for key, label in form.frequency.choices if key} 
+    frequency_choices = {key: label for key, label in form.frequency.choices if key}
 
     return render_template('financeiro/expenses.html',
                            paid_expenses=paid_expenses,
@@ -648,9 +718,11 @@ def expenses():
                            expense_item_choices=expense_category_choices,
                            desc_filter=desc_filter,
                            item_filter_id=item_filter_id,
+                           wallet_filter_id=wallet_filter_id,
                            recurrency_filter=recurrency_filter,
                            date_start=date_start,
                            date_end=date_end,
+                           wallet_choices=wallet_choices,
                            **footer)
 
 @financeiro_bp.route('/despesas/add', methods=['GET', 'POST'])

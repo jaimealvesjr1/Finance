@@ -36,8 +36,15 @@
                                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
                                         <li><h6 class="dropdown-header">Ações</h6></li>
                                         <li>
-                                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editWalletModal{{ wallet.id }}">
-                                                <i class="bi bi-pencil me-2"></i>Editar
+                                            {# Novo: Editar Saldo Inicial #}
+                                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editInitialBalanceModal{{ wallet.id }}">
+                                                <i class="bi bi-cash-stack me-2"></i>Editar Saldo Inicial
+                                            </a>
+                                        </li>
+                                        <li>
+                                            {# Novo: Editar Nome #}
+                                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editWalletNameModal{{ wallet.id }}">
+                                                <i class="bi bi-pencil me-2"></i>Editar Nome
                                             </a>
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
@@ -57,7 +64,7 @@
                         </div>
                     </div>
                     
-                    {% include 'financeiro/wallet_modal.html' %}
+                    {# REMOVIDO: {% include 'financeiro/wallet_modal.html' %} #}
                     
                     {% set delete_entity = wallet %}
                     {% set delete_url = url_for('financeiro.delete_wallet', wallet_id=wallet.id) %}
@@ -76,21 +83,28 @@
         {% endif %}
 
         <div class="mt-5">
-            <h4 class="mb-4 fw-bold text-dark border-bottom pb-2">Últimas {{ transfers|length }} Transferências</h4>
-            
-            {% if transfers %}
+            <h4 class="mb-4 fw-bold text-dark border-bottom pb-2">Últimas Transferências</h4>
+        {% if transfers %}
                 <div class="list-group list-group-flush border-top">
                     {% for transfer in transfers %}
                     <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                        <div>
+                        <div class="me-auto">
                             <span class="fw-medium text-primary">{{ transfer.amount | currency }}</span>
                             <small class="d-block text-muted">
                                 De: {{ transfer.source_wallet.name }} <i class="bi bi-arrow-right mx-1"></i> Para: {{ transfer.target_wallet.name }}
                             </small>
                         </div>
-                        <small class="text-muted" title="{{ transfer.date.strftime('%d/%m/%Y %H:%M') }}">
-                            {{ transfer.date.strftime('%d/%m/%Y') }}
-                        </small>
+                        <div class="text-end d-flex align-items-center">
+                            <small class="text-muted me-3" title="{{ transfer.date.strftime('%d/%m/%Y %H:%M') }}">
+                                {{ transfer.date.strftime('%d/%m/%Y') }}
+                            </small>
+                            {# Adicionado: Botão Desfazer Transferência (Requer rota financeiro.undo_transfer) #}
+                            <form method="POST" action="{{ url_for('financeiro.undo_transfer', transfer_id=transfer.id) }}" onsubmit="return confirm('Tem certeza que deseja desfazer esta transferência? Os saldos serão revertidos.');">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary p-1" title="Desfazer Transferência">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -151,6 +165,78 @@
         </div>
     </div>
 </div>
+
+{# ========================================================================= #}
+{# NOVOS MODAIS PARA EDIÇÃO DE CARTEIRA (PONTO 3) #}
+{# ========================================================================= #}
+{% for wallet in wallets %}
+
+{# MODAL 1: EDITAR SALDO INICIAL #}
+<div class="modal fade" id="editInitialBalanceModal{{ wallet.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary">Editar Saldo Inicial: {{ wallet.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            {# Requer a rota 'financeiro.manage_initial_balance' com o método POST #}
+            <form method="POST" action="{{ url_for('financeiro.manage_initial_balance', wallet_id=wallet.id) }}"> 
+                <div class="modal-body pt-4">
+                    <p class="text-muted small">
+                        O saldo inicial é a base. Alterações aqui corrigem o ponto de partida do histórico da carteira.
+                        <br>
+                        <strong>Saldo Calculado Atual:</strong> <span class="fw-bold">{{ wallet.current_balance | currency }}</span>
+                    </p>
+                    <div class="mb-3">
+                        <label for="new_initial_balance_{{ wallet.id }}" class="form-label">Novo Saldo Inicial (R$)</label>
+                        <input type="number" step="0.01" 
+                                class="form-control" 
+                                name="new_initial_balance" 
+                                id="new_initial_balance_{{ wallet.id }}"
+                                value="{{ '%.2f' | format(wallet.initial_balance) }}"
+                                required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Salvar Saldo Inicial</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editWalletNameModal{{ wallet.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary">Editar Nome da Carteira</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            {# Requer a rota original 'financeiro.manage_wallet' #}
+            <form method="POST" action="{{ url_for('financeiro.manage_wallet', wallet_id=wallet.id) }}"> 
+                {{ form.hidden_tag() }}
+                <div class="modal-body pt-4">
+                    <div class="mb-3">
+                         <label for="{{ form.name.id }}" class="form-label">{{ form.name.label.text }}</label>
+                         <input type="text" 
+                                class="form-control" 
+                                id="{{ form.name.id }}"
+                                name="{{ form.name.name }}"
+                                value="{{ wallet.name }}"
+                                required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Salvar Novo Nome</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endfor %}
 {% endblock %}
 
 {% block scripts %}

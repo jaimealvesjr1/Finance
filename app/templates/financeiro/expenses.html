@@ -30,16 +30,25 @@
         <div class="card border-0 shadow-sm bg-light">
             <div class="card-body py-3">
                 <form method="GET" action="{{ url_for('financeiro.expenses') }}" class="row g-2 align-items-end">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="small text-muted fw-bold">Descrição</label>
                         <input type="text" name="desc_filter" class="form-control form-select-sm" placeholder="Buscar..." value="{{ desc_filter if desc_filter }}">
                     </div>
-                    <div class="col-md-6">
-                        <label class="small text-muted fw-bold">Item de Despesa</label>
+                    <div class="col-md-4">
+                        <label class="small text-muted fw-bold">Categoria</label>
                         <select name="item_filter" class="form-select form-select-sm" id="expense_item_filter_select2">
-                             <option value="">Todos os Itens</option>
-                             {% for id, name in expense_item_choices %}
+                            <option value="">Todas as Categorias</option>
+                            {% for id, name in expense_item_choices %}
                                 <option value="{{ id }}" {% if id == item_filter_id %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small text-muted fw-bold">Carteira</label>
+                        <select name="wallet_filter" class="form-select form-select-sm" id="expense_wallet_filter_select2">
+                            <option value="">Todas as Carteiras</option>
+                            {% for id, name in wallet_choices %}
+                                <option value="{{ id }}" {% if id == wallet_filter_id %}selected{% endif %}>{{ name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -164,7 +173,15 @@
             </div>
         </div>
         
-        {{ render_pagination(pagination, 'financeiro.expenses') }}
+        {% set filter_params = { 
+            'desc_filter': desc_filter,
+            'item_filter': item_filter_id,
+            'recurrency_filter': recurrency_filter,
+            'date_start': date_start,
+            'date_end': date_end,
+            'wallet_filter': wallet_filter_id 
+        } %}
+        {{ render_pagination(pagination, 'financeiro.expenses', **filter_params) }}
     </div>
 
     <div class="tab-pane fade" id="apagar-content" role="tabpanel">
@@ -302,7 +319,8 @@ $(document).ready(function() {
         allowClear: true
     };
     
-    $('#expense_item_filter_select2').select2({ ...select2Config, placeholder: "Item de Despesa" });
+    $('#expense_item_filter_select2').select2({ ...select2Config, placeholder: "Categoria" });
+    $('#expense_wallet_filter_select2').select2({ ...select2Config, placeholder: "Carteira" });
     $('#recorrencia_filtro_select2').select2({ ...select2Config, placeholder: "Recorrência", minimumResultsForSearch: Infinity });
 
     function atualizarCardTotal(abaAtiva) {
