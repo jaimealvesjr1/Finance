@@ -5,7 +5,7 @@ from wtforms_sqlalchemy.fields import QuerySelectField
 from datetime import date
 from flask_login import current_user
 
-from .models import Wallet, RevenueCategory, RevenueTransaction, ExpenseGroup, ExpenseItem, Expense 
+from .models import Wallet, RevenueCategory, RevenueTransaction, ExpenseCategory, Expense, Transfer 
 from app.extensions import db
 
 def get_user_wallets():
@@ -14,8 +14,8 @@ def get_user_wallets():
 def get_user_revenue_categories():
     return RevenueCategory.query.filter_by(user_id=current_user.id).all()
 
-def get_user_expense_items():
-    return ExpenseItem.query.join(ExpenseGroup).filter(ExpenseItem.user_id == current_user.id).order_by(ExpenseGroup.name, ExpenseItem.name).all()
+def get_user_expense_categories():
+    return ExpenseCategory.query.filter(ExpenseCategory.user_id == current_user.id).order_by(ExpenseCategory.name).all()
 
 class WalletForm(FlaskForm):
     name = StringField('Nome da Carteira/Conta', validators=[
@@ -35,27 +35,12 @@ class RevenueCategoryForm(FlaskForm):
     ])
     submit = SubmitField('Salvar Categoria de Receita')
 
-class ExpenseGroupForm(FlaskForm):
-    name = StringField('Nome do Grupo de Despesa (Ex: Moradia, Lazer)', validators=[
-        DataRequired(), 
-        Length(max=80)
-    ])
-    submit = SubmitField('Salvar Grupo de Despesa')
-
-class ExpenseItemForm(FlaskForm):
-    name = StringField('Nome do Item de Despesa (Ex: Aluguel, Supermercado)', validators=[
+class ExpenseCategoryForm(FlaskForm):
+    name = StringField('Nome da Categoria de Despesa', validators=[
         DataRequired(), 
         Length(max=150)
     ])
-    group = QuerySelectField(
-        'Grupo de Despesa',
-        query_factory=lambda: ExpenseGroup.query.filter_by(user_id=current_user.id).order_by(ExpenseGroup.name).all(),
-        get_pk=lambda a: a.id,
-        get_label=lambda a: a.name,
-        allow_blank=False,
-        validators=[DataRequired(message="Selecione um grupo de despesa.")]
-    )
-    submit = SubmitField('Salvar Item de Despesa')
+    submit = SubmitField('Salvar Categoria de Despesa')
 
 
 class RevenueTransactionForm(FlaskForm):
@@ -162,12 +147,12 @@ class ExpenseForm(FlaskForm):
     payment_date = DateField('Data de Pagamento', format='%Y-%m-%d', validators=[Optional()])
 
     item = QuerySelectField(
-        'Item de Despesa',
-        query_factory=get_user_expense_items,
+        'Categoria de Despesa', # Label atualizado
+        query_factory=get_user_expense_categories, # Função atualizada
         get_pk=lambda a: a.id,
-        get_label=lambda a: f"{a.group.name} > {a.name}",
+        get_label=lambda a: a.name, # Label simplificado (sem grupo)
         allow_blank=False,
-        validators=[DataRequired(message="Selecione um item de despesa.")]
+        validators=[DataRequired(message="Selecione uma categoria de despesa.")]
     )
     
     wallet = QuerySelectField(

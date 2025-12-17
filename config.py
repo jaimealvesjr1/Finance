@@ -12,7 +12,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     TIMEZONE = 'America/Sao_Paulo'
-    VERSAO_APP = 'Beta 1.0.0'
+    VERSAO_APP = 'Beta 1.0.5'
     ANO_ATUAL = datetime.now().year
     
     UPLOAD_FOLDER = os.path.join(basedir, 'app', 'static', 'uploads', 'profile_pics')

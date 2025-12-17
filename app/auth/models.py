@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date
 from sqlalchemy.ext.hybrid import hybrid_property
-from app.financeiro.models import Wallet, RevenueCategory, RevenueTransaction, ExpenseGroup, ExpenseItem, Expense
+from app.financeiro.models import Wallet, RevenueCategory, RevenueTransaction, ExpenseCategory, Expense
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -20,16 +20,13 @@ class User(UserMixin, db.Model):
     categories = db.relationship('RevenueCategory', backref='user', lazy='dynamic')
     transactions = db.relationship('RevenueTransaction', backref='user', lazy='dynamic')
     
-    expense_groups = db.relationship('ExpenseGroup', backref='user', lazy='dynamic')
-    expense_items = db.relationship('ExpenseItem', backref='user', lazy='dynamic')
+    expense_categories = db.relationship('ExpenseCategory', backref='user', lazy='dynamic')
     expenses = db.relationship('Expense', backref='user', lazy='dynamic')
 
     def set_password(self, password):
-        """Cria o hash da senha e armazena em password_hash."""
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        """"Verifica se a senha fornecida corresponde ao hash."""
         return check_password_hash(self.password_hash, password)
     
     @property

@@ -2,32 +2,47 @@
 {% from 'base/components/forms.html' import field %}
 {% from 'base/components/buttons.html' import submit %}
 
+{% block title %}Login{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5 col-lg-4">
-        <div class="text-center mb-4">
-            <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                <i class="bi bi-graph-up-arrow text-white fs-2"></i>
-            </div>
-            <h3 class="fw-bold text-dark">Bem-vindo de volta!</h3>
-            <p class="text-muted">Faça login para gerir as suas finanças.</p>
-        </div>
+<div class="container py-5">
+    
+    <div class="text-center mb-5">
+        {# Mantendo o ícone existente, mas adaptando o estilo ao design limpo #}
+        <img src="{{ url_for('static', filename='img/icon_ascentia.png') }}" alt="Logo Finance" class="mb-3" style="max-height: 100px;">
+    </div>
 
-        <div class="card border-0 shadow-lg">
-            <div class="card-body p-4">
-                <form method="POST" action="{{ url_for('auth.login') }}">
-                    {{ form.hidden_tag() }}
-                    
-                    {{ field(form.email, placeholder="seu@email.com", icon="bi-envelope") }}
-                    {{ field(form.password, placeholder="Sua senha", icon="bi-key") }}
+    {# Adotando o estilo de card do template de inspiração (shadow, padding, border radius e largura máxima) #}
+    <div class="card shadow-lg p-4 rounded-4 mx-auto text-start" style="max-width: 500px;">
+        <h2 class="text-center mb-4" style="color: var(--cor-destaque, #0d6efd);">
+            <strong>Login</strong>
+        </h2>
 
-                    {{ submit('Entrar', class="btn-primary w-100 py-2") }}
-                </form>
+        <form method="POST" action="{{ url_for('auth.login') }}">
+            {{ form.hidden_tag() }}
+            
+            {# Adaptado para usar o macro 'field' com ícones do Bootstrap #}
+            {# Se o seu macro 'field' não suportar o parâmetro 'icon', você deve remover o 'icon="...'" aqui. #}
+            {{ field(form.email, placeholder="Insira seu email", icon="bi-person-fill") }}
+            {{ field(form.password, placeholder="Insira sua senha", icon="bi-key-fill") }}
+
+            {# CHECKBOX LEMBRAR-ME (Reintroduzido para funcionalidade completa) #}
+            <div class="form-check mb-3">
+                <input type="checkbox" 
+                        class="form-check-input" 
+                        id="{{ form.remember_me.id }}" 
+                        name="{{ form.remember_me.name }}"
+                        {% if form.remember_me.data %}checked{% endif %}>
+                <label class="form-check-label" for="{{ form.remember_me.id }}">
+                    {{ form.remember_me.label.text }}
+                </label>
             </div>
-            <div class="card-footer bg-light text-center py-3 border-0">
-                <span class="text-muted">Não tem conta?</span> 
-                <a href="{{ url_for('auth.register') }}" class="text-primary fw-bold text-decoration-none">Criar conta</a>
-            </div>
+
+            {{ submit('Entrar', class="btn-primary w-100 py-2 mt-3")}}
+        </form>
+        
+        <div class="text-center mt-3">
+            Não tem uma conta? <a href="{{ url_for('auth.register') }}" class="text-primary fw-bold text-decoration-none">Crie seu acesso aqui</a>.
         </div>
     </div>
 </div>

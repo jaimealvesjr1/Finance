@@ -115,8 +115,7 @@
                             </td>
                             <td class="py-2"><span class="fw-bold text-dark">{{ t.description }}</span></td>
                             <td class="py-2">
-                                <span class="fw-bold text-dark">{{ t.item.name }}</span>
-                                <small class="d-block text-muted">{{ t.item.group.name }}</small>
+                                <span class="fw-bold text-dark">{{ t.category.name }}</span>
                             </td>
                             <td class="py-2">
                                 <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
@@ -147,7 +146,7 @@
                             <span class="fw-bold text-danger text-nowrap">- {{ t.amount | currency }}</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center small mb-2">
-                            <span class="badge bg-light text-danger border fw-normal rounded-pill">{{ t.item.name }} ({{ t.item.group.name }})</span>
+                            <span class="badge bg-light text-danger border fw-normal rounded-pill">{{ t.category.name }}</span>
                             <span class="text-muted font-monospace">
                                 {{ t.payment_date.strftime('%d/%m/%Y') if t.payment_date else 'N/A' }}
                             </span>
@@ -217,8 +216,7 @@
                             </td>
                             <td class="py-2"><span class="fw-bold text-dark">{{ t.description }}</span></td>
                             <td class="py-2">
-                                <span class="fw-bold text-dark">{{ t.item.name }}</span>
-                                <small class="d-block text-muted">{{ t.item.group.name }}</small>
+                                <span class="fw-bold text-dark">{{ t.category.name }}</span>
                             </td>
                             <td class="py-2">
                                 <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
@@ -258,7 +256,7 @@
                                 <span class="fw-bold text-secondary text-nowrap">- {{ t.amount | currency }}</span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center small mb-2">
-                                <span class="badge bg-light text-danger border fw-normal rounded-pill">{{ t.item.name }} ({{ t.item.group.name }})</span>
+                                <span class="badge bg-light text-danger border fw-normal rounded-pill">{{ t.category.name }}</span>
                                 <span class="text-muted font-monospace">{{ t.due_date.strftime('%d/%m/%Y') }}
                                     {% if status_text %}<span class="badge bg-danger ms-1">{{ status_text }}</span>{% endif %}
                                 </span>
@@ -304,11 +302,9 @@ $(document).ready(function() {
         allowClear: true
     };
     
-    // Placeholder Select2 para filtros (devem ser populados no Python)
     $('#expense_item_filter_select2').select2({ ...select2Config, placeholder: "Item de Despesa" });
     $('#recorrencia_filtro_select2').select2({ ...select2Config, placeholder: "Recorrência", minimumResultsForSearch: Infinity });
 
-    // Lógica para alternar o card de total (copiado do anexo)
     function atualizarCardTotal(abaAtiva) {
         var cardTotal = $('#card-total');
         var valorTotal = $('#valor-total');
@@ -325,18 +321,15 @@ $(document).ready(function() {
         }
     }
     
-    // Lógica para alternar o PDF (copiado do anexo)
     function atualizarLinkPDF(abaAtiva) {
         var status = (abaAtiva === 'pagas-tab') ? 'pagas' : 'pendentes';
-        // Simulação de URLParams
         var urlParams = new URLSearchParams(window.location.search);
         urlParams.set('status_relatorio', status);
         
-        var novaUrl = "{{ url_for('financeiro.expenses') }}" + "?" + urlParams.toString(); // Rota deve ser para download_pdf
+        var novaUrl = "{{ url_for('financeiro.expenses') }}" + "?" + urlParams.toString();
         $('#btn-relatorio-pdf').attr('href', novaUrl);
     }
 
-    // Inicializa a tab e o card
     var activeTab = document.querySelector('#despesasTabs button.active');
     if (activeTab) {
         atualizarCardTotal(activeTab.id);

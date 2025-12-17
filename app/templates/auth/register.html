@@ -2,38 +2,37 @@
 {% from 'base/components/forms.html' import field %}
 {% from 'base/components/buttons.html' import submit %}
 
+{% block title %}Registro{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="text-center mb-4">
-            <h3 class="fw-bold text-dark">Criar Nova Conta</h3>
-            <p class="text-muted">Comece a controlar o seu dinheiro hoje.</p>
-        </div>
+<div class="container py-5">
+    
+    <div class="text-center mb-5">
+        <img src="{{ url_for('static', filename='img/icon_ascentia.png') }}" alt="Logo Finance" class="mb-3" style="max-height: 100px;">
+    </div>
 
-        <div class="card border-0 shadow-lg">
-            <div class="card-body p-4">
-                <form method="POST" action="{{ url_for('auth.register') }}">
-                    {{ form.hidden_tag() }}
+    {# Estrutura de Card Centralizada, inspirada no template de login #}
+    <div class="card shadow-lg p-4 rounded-4 mx-auto text-start" style="max-width: 500px;">
+        <h2 class="text-center mb-4" style="color: var(--cor-destaque, #0d6efd);">
+            <strong>Criar Conta</strong>
+        </h2>
 
-                    {{ field(form.username, placeholder="Seu nome") }}
-                    {{ field(form.email, placeholder="seu@email.com") }}
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            {{ field(form.password) }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ field(form.password2) }}
-                        </div>
-                    </div>
-
-                    {{ submit('Registrar', class="btn-success w-100 py-2") }}
-                </form>
-            </div>
-            <div class="card-footer bg-light text-center py-3 border-0">
-                <span class="text-muted">Já tem conta?</span> 
-                <a href="{{ url_for('auth.login') }}" class="text-primary fw-bold text-decoration-none">Fazer Login</a>
-            </div>
+        <form method="POST" action="{{ url_for('auth.register') }}">
+            {{ form.hidden_tag() }}
+            
+            {{ field(form.username, placeholder="Seu nome completo ou de usuário", icon="bi-person") }}
+            
+            {{ field(form.email, placeholder="seu@email.com", icon="bi-envelope") }}
+            
+            {{ field(form.password, placeholder="Crie uma senha forte", icon="bi-key") }}
+            
+            {{ field(form.password2, placeholder="Confirme sua senha", icon="bi-key-fill") }}
+            
+            {{ submit('Registrar', class="btn-primary w-100 py-2 mt-3")}}
+        </form>
+        
+        <div class="text-center mt-3">
+            Já tem uma conta? <a href="{{ url_for('auth.login') }}" class="text-primary fw-bold text-decoration-none">Faça login aqui</a>.
         </div>
     </div>
 </div>

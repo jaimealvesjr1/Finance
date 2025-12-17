@@ -74,6 +74,33 @@
                 <p class="mb-0">Utilize o formulário ao lado para criar a sua primeira carteira.</p>
             </div>
         {% endif %}
+
+        <div class="mt-5">
+            <h4 class="mb-4 fw-bold text-dark border-bottom pb-2">Últimas {{ transfers|length }} Transferências</h4>
+            
+            {% if transfers %}
+                <div class="list-group list-group-flush border-top">
+                    {% for transfer in transfers %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <span class="fw-medium text-primary">{{ transfer.amount | currency }}</span>
+                            <small class="d-block text-muted">
+                                De: {{ transfer.source_wallet.name }} <i class="bi bi-arrow-right mx-1"></i> Para: {{ transfer.target_wallet.name }}
+                            </small>
+                        </div>
+                        <small class="text-muted" title="{{ transfer.date.strftime('%d/%m/%Y %H:%M') }}">
+                            {{ transfer.date.strftime('%d/%m/%Y') }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted bg-white rounded shadow-sm border border-dashed">
+                    <i class="bi bi-clock-history fs-2 d-block mb-2 opacity-50"></i>
+                    <p class="mb-0">Nenhuma transferência recente encontrada.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 
     <div class="col-lg-4">
@@ -108,7 +135,7 @@
             <form method="POST" action="{{ url_for('financeiro.transfer') }}" id="transfer_form">
                 <div class="modal-body pt-4">
                     {{ form_transfer.hidden_tag() }}
-                    <p class="text-muted small">Mova valores entre suas contas (Carteiras). Uma despesa será criada na origem e uma receita no destino.</p>
+                    <p class="text-muted small">Mova valores entre suas contas (Carteiras). Uma transação de histórico será registrada.</p>
                     
                     {{ field(form_transfer.amount, placeholder="Ex: 100.00") }}
                     {{ field(form_transfer.source_wallet) }}

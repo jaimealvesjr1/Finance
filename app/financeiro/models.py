@@ -12,7 +12,7 @@ class Wallet(db.Model):
 
     transactions = db.relationship('RevenueTransaction', backref='wallet', lazy='dynamic')
     expenses = db.relationship('Expense', backref='wallet', lazy='dynamic')
-
+    
     def __repr__(self):
         return f'<Wallet {self.name}>'
 
@@ -39,7 +39,6 @@ class Wallet(db.Model):
 class RevenueCategory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
-    # Campo type mantido como 'R' para retrocompatibilidade no banco
     type = db.Column(db.String(1), default='R', nullable=False) 
     
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -49,27 +48,22 @@ class RevenueCategory(db.Model):
     def __repr__(self):
         return f'<RevenueCategory {self.name}>'
     
-class ExpenseGroup(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    items = db.relationship('ExpenseItem', backref='group', lazy='dynamic', cascade="all, delete-orphan")
-    
-    def __repr__(self):
-        return f'<ExpenseGroup {self.name}>'
+# ExpenseGroup REMOVIDO
 
-class ExpenseItem(db.Model):
+class ExpenseCategory(db.Model):
+    # ExpenseItem adaptado para ExpenseCategory (Ponto 1)
+    __tablename__ = 'expense_category' 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     
-    group_id = db.Column(db.Integer, db.ForeignKey('expense_group.id'), nullable=False)
+    # group_id REMOVIDO
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    expenses = db.relationship('Expense', backref='item', lazy='dynamic', cascade="all, delete-orphan")
+    expenses = db.relationship('Expense', backref='category', lazy='dynamic', cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f'<ExpenseItem {self.name} ({self.group.name})>'
+        return f'<ExpenseCategory {self.name}>'
+
 
 class RevenueTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -99,22 +93,34 @@ class Expense(db.Model):
     description = db.Column(db.String(255), nullable=False)
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     
-    # Datas de Fluxo de Caixa
-    date = db.Column(db.Date, default=date.today, nullable=False) # Data de competência/registro
-    due_date = db.Column(db.Date, nullable=False) # Data de Vencimento
-    payment_date = db.Column(db.DateTime, nullable=True) # Data de Pagamento
-    is_paid = db.Column(db.Boolean, default=False, nullable=False) # Status de pagamento (CRÍTICO)
+    date = db.Column(db.Date, default=date.today, nullable=False)
+    due_date = db.Column(db.Date, nullable=False)
+    payment_date = db.Column(db.DateTime, nullable=True)
+    is_paid = db.Column(db.Boolean, default=False, nullable=False)
 
-    # Recorrência
     is_recurrent = db.Column(db.Boolean, default=False, nullable=False)
     frequency = db.Column(db.String(50), nullable=True)
     last_launch_date = db.Column(db.DateTime, nullable=True)
     
-    # Relacionamentos com a nova hierarquia
-    item_id = db.Column(db.Integer, db.ForeignKey('expense_item.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('expense_category.id'), nullable=False)
     
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=False) 
     
     def __repr__(self):
         return f'<Expense {self.description} | R${self.amount} | Pago: {self.is_paid}>'
+
+class Transfer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    source_wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=False)
+    target_wallet_id = db.Column(db.Integer, db.ForeignKey('wallet.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    source_wallet = db.relationship('Wallet', foreign_keys=[source_wallet_id], backref='outgoing_transfers')
+    target_wallet = db.relationship('Wallet', foreign_keys=[target_wallet_id], backref='incoming_transfers')
+
+    def __repr__(self):
+        return f'<Transfer R${self.amount} from {self.source_wallet.name} to {self.target_wallet.name}>'
