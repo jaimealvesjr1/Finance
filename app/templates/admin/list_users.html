@@ -31,7 +31,12 @@
                 {% for user in users %}
                 <tr>
                     <td class="ps-4 text-muted">{{ user.id }}</td>
-                    <td class="fw-medium">{{ user.username }}</td>
+                    <td class="fw-medium">
+                        {{ user.username }}
+                        {% if user.pending_message %}
+                            <small class="d-block text-warning fw-bold">Mensagem Pendente</small>
+                        {% endif %}
+                    </td>
                     <td class="text-muted">{{ user.email }}</td>
                     <td class="text-center">
                         {% if user.is_admin %}
@@ -50,9 +55,6 @@
                             <small class="d-block text-muted">até {{ user.access_due_date.strftime('%d/%m/%Y') }}</small>
                         {% else %}
                             <small class="d-block text-muted">Sem Data</small>
-                        {% endif %}
-                        {% if user.pending_message %}
-                            <small class="d-block text-warning fw-bold">Msg Pendente</small>
                         {% endif %}
                     </td>
                     <td class="text-center pe-4">

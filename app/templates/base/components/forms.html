@@ -1,42 +1,39 @@
 {% macro field(field) %}
     <div class="mb-3">
-        {# Renderiza o label primeiro #}
-        {{ field.label(class="form-label") }}
+        {{ field.label(class="form-label fw-bold small text-muted") }}
         
-        {# Adiciona 'form-control' ou 'form-select' às kwargs se não houver classe definida #}
+        {% set icon = kwargs.pop('icon', none) %}
         {% set field_class = kwargs.pop('class', '') %}
         
-        {% if field.type == 'SelectField' %}
-            {% if not field_class %}
-                {% set field_class = 'form-select' %}
+        <div class="input-group">
+            {% if icon %}
+                <span class="input-group-text bg-light border-end-0">
+                    <i class="{{ icon }}"></i>
+                </span>
             {% endif %}
-            {{ field(class=field_class, **kwargs) }}
-        
-        {% elif field.type == 'TextAreaField' %}
-            {% if not field_class %}
-                {% set field_class = 'form-control' %}
+
+            {% if field.type == 'SelectField' %}
+                {% set field_class = field_class or 'form-select' %}
+                {{ field(class=field_class + ( ' border-start-0' if icon else ''), **kwargs) }}
+            
+            {% elif field.type == 'TextAreaField' %}
+                {% set field_class = field_class or 'form-control' %}
+                {% set rows = kwargs.pop('rows', (field.render_kw or {}).get('rows', 3)) %}
+                {{ field(class=field_class + ( ' border-start-0' if icon else ''), rows=rows, **kwargs) }}
+            
+            {% elif field.type == 'DateField' %}
+                {% set field_class = field_class or 'form-control' %}
+                {{ field(class=field_class + ( ' border-start-0' if icon else ''), type="date", **kwargs) }}
+            
+            {% else %}
+                {% set field_class = field_class or 'form-control' %}
+                {{ field(class=field_class + ( ' border-start-0' if icon else ''), **kwargs) }}
             {% endif %}
-            {% set rows = kwargs.pop('rows', (field.render_kw or {}).get('rows', 3)) %}
-            {{ field(class=field_class, rows=rows, **kwargs) }}
+        </div>
         
-        {% elif field.type == 'DateField' %}
-            {% if not field_class %}
-                {% set field_class = 'form-control' %}
-            {% endif %}
-            {{ field(class=field_class, type="date", **kwargs) }}
-        
-        {% else %}
-            {# Para todos os outros campos (StringField, FloatField, etc.) #}
-            {% if not field_class %}
-                {% set field_class = 'form-control' %}
-            {% endif %}
-            {{ field(class=field_class, **kwargs) }}
-        {% endif %}
-        
-        {# Exibição de erros #}
         {% if field.errors %}
             {% for error in field.errors %}
-                <div class="alert alert-danger mt-1">{{ error }}</div>
+                <div class="invalid-feedback d-block mt-1">{{ error }}</div>
             {% endfor %}
         {% endif %}
     </div>

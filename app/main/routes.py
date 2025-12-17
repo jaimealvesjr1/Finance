@@ -163,9 +163,12 @@ def index():
         )
         chart_receitas.append(float(rec_result))
         chart_despesas.append(float(desp_result))
+
+    predicted_balance = total_balance + Decimal(monthly_receivable_revenue) - Decimal(monthly_pending_expenses)
         
     context = {
         'total_balance': total_balance,
+        'predicted_balance': predicted_balance,
         'monthly_received_revenue': monthly_received_revenue, 
         'monthly_receivable_revenue': monthly_receivable_revenue, 
         'monthly_paid_expenses': monthly_paid_expenses, 
