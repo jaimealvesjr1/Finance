@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
 from app.financeiro.models import Wallet, RevenueTransaction, Expense, RevenueCategory, ExpenseCategory
 from app.extensions import db
 from sqlalchemy import func, extract
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from config import Config
 from decimal import Decimal
 
@@ -192,3 +192,27 @@ def index():
     }
 
     return render_template('main/dashboard.html', **context, **footer)
+
+@main_bp.app_context_processor
+def inject_notifications():
+    if not current_user.is_authenticated:
+        return dict()
+        
+    today = date.today()
+    
+    rev_count = RevenueTransaction.query.filter_by(
+        user_id=current_user.id, is_received=False, due_date=today
+    ).count()
+    
+    exp_count = Expense.query.filter_by(
+        user_id=current_user.id, is_paid=False, due_date=today
+    ).count()
+    
+    return dict(notif_revenue_today=rev_count, notif_expense_today=exp_count)
+
+@main_bp.route('/clear_broadcast', methods=['POST'])
+@login_required
+def clear_broadcast():
+    current_user.pending_message = None
+    db.session.commit()
+    return jsonify({'status': 'ok'})

@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, DecimalField, SubmitField, SelectField, BooleanField, DateField
+from wtforms import StringField, DecimalField, SubmitField, SelectField, BooleanField, DateField, IntegerField
 from wtforms.validators import DataRequired, NumberRange, Length, ValidationError, Optional
 from wtforms_sqlalchemy.fields import QuerySelectField
 from datetime import date
@@ -82,20 +82,11 @@ class RevenueTransactionForm(FlaskForm):
     )
 
     is_recurrent = BooleanField('Transação se repete?')
-    num_repetitions = SelectField('Repetir quantas vezes?', choices=[
-        ('0', 'Apenas este lançamento'),
-        ('1', '1 vez'),
-        ('2', '2 vezes'), 
-        ('3', '3 vezes'), 
-        ('4', '4 vezes'), 
-        ('5', '5 vezes'),
-        ('6', '6 vezes'),
-        ('7', '7 vezes'),
-        ('8', '8 vezes'),
-        ('9', '9 vezes'),
-        ('10', '10 vezes'),
-        ('11', '11 vezes')
-    ], default='0', validators=[Optional()])
+    
+    num_repetitions = IntegerField('Repetir quantas vezes?', default=0, validators=[
+        Optional(), 
+        NumberRange(min=0, max=360, message="Máximo de 360 repetições.")
+    ])
 
     frequency = SelectField('Frequência de Recorrência', choices=[
         ('', 'Não Recorrente'),
@@ -108,12 +99,9 @@ class RevenueTransactionForm(FlaskForm):
     submit = SubmitField('Registrar Receita')
     
     def validate_receipt_date(self, field):
-        try:
-            num_repetitions = int(self.num_repetitions.data)
-        except:
-            num_repetitions = 0
+        repetitions = self.num_repetitions.data if self.num_repetitions.data else 0
 
-        if num_repetitions > 0:
+        if repetitions > 0:
             return 
             
         if self.status.data == 'received':
@@ -147,10 +135,10 @@ class ExpenseForm(FlaskForm):
     payment_date = DateField('Data de Pagamento', format='%Y-%m-%d', validators=[Optional()])
 
     item = QuerySelectField(
-        'Categoria de Despesa', # Label atualizado
-        query_factory=get_user_expense_categories, # Função atualizada
+        'Categoria de Despesa', 
+        query_factory=get_user_expense_categories, 
         get_pk=lambda a: a.id,
-        get_label=lambda a: a.name, # Label simplificado (sem grupo)
+        get_label=lambda a: a.name,
         allow_blank=False,
         validators=[DataRequired(message="Selecione uma categoria de despesa.")]
     )
@@ -166,20 +154,10 @@ class ExpenseForm(FlaskForm):
 
     is_recurrent = BooleanField('Despesa Recorrente?')
     
-    num_repetitions = SelectField('Repetir quantas vezes?', choices=[
-        ('0', 'Apenas este lançamento'),
-        ('1', '1 vez'),
-        ('2', '2 vezes'), 
-        ('3', '3 vezes'), 
-        ('4', '4 vezes'), 
-        ('5', '5 vezes'),
-        ('6', '6 vezes'),
-        ('7', '7 vezes'),
-        ('8', '8 vezes'),
-        ('9', '9 vezes'),
-        ('10', '10 vezes'),
-        ('11', '11 vezes')
-    ], default='0', validators=[Optional()])
+    num_repetitions = IntegerField('Repetir quantas vezes?', default=0, validators=[
+        Optional(), 
+        NumberRange(min=0, max=360, message="Máximo de 360 repetições.")
+    ])
     
     frequency = SelectField('Frequência de Recorrência', choices=[
         ('', 'Não Recorrente'),

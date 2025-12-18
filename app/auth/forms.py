@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, RadioField
 from flask_login import current_user
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length
 from .models import User
@@ -56,15 +56,23 @@ class ChangePasswordForm(FlaskForm):
 
 
 class ChangeEmailForm(FlaskForm):
-    """Formulário para mudança de email."""
     email = StringField('Novo Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Alterar Email')
 
     def validate_email(self, email):
-        """Verifica se o novo email já está registrado (por outro usuário)."""
         if email.data != current_user.email:
-            # Importa User aqui para evitar dependência circular de topo
             from .models import User 
             user = User.query.filter_by(email=email.data).first()
             if user is not None:
                 raise ValidationError('Este email já está registrado por outra conta.')
+
+class ResetDataForm(FlaskForm):
+    action_type = RadioField('Selecione a Ação:', choices=[
+        ('transactions', 'Limpar Lançamentos (Manter categorias e carteiras)'),
+        ('full_reset', 'Reset Completo (Apagar tudo e zerar conta)'),
+        ('delete_account', 'Excluir Minha Conta (Apagar usuário e dados)')
+    ], default='transactions', validators=[DataRequired()])
+    
+    password = PasswordField('Senha para Confirmação', validators=[DataRequired()])
+    confirm_check = BooleanField('Estou ciente que esta ação é irreversível', validators=[DataRequired()])
+    submit = SubmitField('CONFIRMAR AÇÃO')

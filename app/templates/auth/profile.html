@@ -49,42 +49,115 @@
                 </div>
             </div>
 
-            <div class="col-md-12">
-                <div class="card border-0 shadow-sm rounded-4 p-3 bg-light">
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-light h-100">
                     <div class="card-body">
                         <h5 class="fw-bold mb-3">Status da Assinatura</h5>
                         
                         {% set badge_class = 'bg-success' if current_user.is_active else 'bg-danger' %}
-                        {% set status_text = 'Beta Tester' if current_user.is_active else 'Vencido' %}
+                        {% set status_text = 'Beta Tester' if current_user.is_active else 'Bloqueado' %}
                         
-                        <span class="badge {{ badge_class }} fs-5 py-2 px-3">
-                            <i class="bi bi-bug-fill me-2"></i> {{ status_text }}
+                        <span class="badge {{ badge_class }} fs-5 py-2 px-3 mb-3">
+                            <i class="bi bi-person-badge-fill me-2"></i> {{ status_text }}
                         </span>
                         
-                        <p class="mt-3 mb-1">
-                            <strong>
-                                Vencimento da Assinatura:
-                            </strong>
+                        <p class="mb-1">
+                            <strong>Vencimento:</strong>
                             {% if current_user.access_due_date %}
                                 <span class="fw-bold text-dark">{{ current_user.access_due_date.strftime('%d/%m/%Y') }}</span>
                             {% else %}
-                                <span class="text-muted">Indefinido</span>
+                                <span class="text-muted">Acesso Vitalício/Indefinido</span>
                             {% endif %}
                         </p>
                         
-                        {% if not current_user.is_active %}
-                            <div class="alert alert-danger mt-3 mb-0 small">
-                                Seu acesso foi bloqueado. Por favor, entre em contato com o administrador para renovação.
-                            </div>
-                        {% endif %}
-                        
                         {% if current_user.is_admin %}
-                            <p class="mt-3 mb-0 text-danger fw-bold">
-                                <i class="bi bi-shield-lock me-2"></i> Permissão de Administrador.
-                            </p>
+                            <div class="alert alert-info mt-3 mb-0 py-2">
+                                <i class="bi bi-shield-lock-fill me-2"></i> Você é Administrador
+                            </div>
                         {% endif %}
                     </div>
                 </div>
+            </div>
+
+            <div class="col-md-4 mt-4">
+                <div class="card border-danger shadow-sm rounded-4">
+                    <div class="card-body">
+                        <h5 class="fw-bold text-danger mb-2">Zona de Perigo</h5>
+                        <p class="text-muted small">Deseja recomeçar do zero? Isso apagará todas as suas carteiras, categorias e lançamentos.</p>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#resetDataModal">
+                            <i class="bi bi-trash-fill"></i> Resetar todos os Dados
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="resetDataModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold text-white">
+                    <i class="bi bi-cone-striped me-2"></i>Reset de Conta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('auth.reset_account_data') }}">
+                    {{ form_reset.hidden_tag() }}
+                    
+                    <p class="mb-3 fw-bold text-dark">Selecione o que deseja fazer:</p>
+
+                    <div class="vstack gap-2 mb-4">
+                        <label class="list-group-item d-flex gap-3 align-items-start p-3 border rounded cursor-pointer hover-bg-light">
+                            <input class="form-check-input flex-shrink-0 mt-1" type="radio" name="action_type" value="transactions" checked>
+                            <div>
+                                <strong class="d-block text-dark">Resetar apenas lançamentos</strong>
+                                <small class="text-muted" style="font-size: 0.85em; line-height: 1.2;">
+                                    Apaga todas as suas receitas, despesas e transferências. Mantém suas categorias e carteiras configuradas.
+                                </small>
+                            </div>
+                        </label>
+
+                        <label class="list-group-item d-flex gap-3 align-items-start p-3 border border-warning bg-warning bg-opacity-10 rounded cursor-pointer">
+                            <input class="form-check-input flex-shrink-0 mt-1" type="radio" name="action_type" value="full_reset">
+                            <div>
+                                <strong class="d-block text-warning">Restaurar toda a conta</strong>
+                                <small class="text-muted" style="font-size: 0.85em; line-height: 1.2;">
+                                    Apaga <strong>TUDO</strong>: lançamentos, carteiras e categorias. Sua conta volta a ser como no primeiro login.
+                                </small>
+                            </div>
+                        </label>
+
+                        <label class="list-group-item d-flex gap-3 align-items-start p-3 border border-danger bg-danger bg-opacity-10 rounded cursor-pointer">
+                            <input class="form-check-input flex-shrink-0 mt-1" type="radio" name="action_type" value="delete_account">
+                            <div>
+                                <strong class="d-block text-danger">Excluir minha conta</strong>
+                                <small class="text-danger" style="font-size: 0.85em; line-height: 1.2;">
+                                    Exclui seu usuário e todos os dados permanentemente. Você será desconectado imediatamente.
+                                </small>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Confirmação de Segurança</label>
+                        {{ field(form_reset.password, placeholder="Digite sua senha atual para confirmar") }}
+                    </div>
+
+                    <div class="form-check mb-4 bg-light p-3 rounded border">
+                        {{ form_reset.confirm_check(class="form-check-input") }}
+                        <label class="form-check-label text-danger fw-bold small" for="confirm_check">
+                            Compreendo que esta ação é irreversível e não há como recuperar os dados apagados.
+                        </label>
+                    </div>
+
+                    <div class="d-grid">
+                        {{ submit('CONFIRMAR AÇÃO', class="btn-danger btn-lg") }}
+                    </div>
+                </form>
             </div>
         </div>
     </div>

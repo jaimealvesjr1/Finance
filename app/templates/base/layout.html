@@ -31,6 +31,34 @@
         </div>
 
         <div class="main-content">
+
+        {% if current_user.is_authenticated and current_user.pending_message %}
+        <div class="alert alert-info alert-dismissible fade show container mt-3" role="alert" id="broadcast-alert">
+            <i class="bi bi-megaphone-fill me-2"></i> {{ current_user.pending_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="dismissBroadcast()"></button>
+        </div>
+        <script>
+            function dismissBroadcast() {
+                fetch("{{ url_for('main.clear_broadcast') }}", {method: "POST"});
+            }
+        </script>
+        {% endif %}
+
+        {% if current_user.is_authenticated %}
+            {% if notif_expense_today > 0 %}
+            <div class="alert alert-warning alert-dismissible fade show container mt-2" role="alert">
+                <strong>Atenção:</strong> Você tem <strong>{{ notif_expense_today }}</strong> despesa(s) vencendo hoje!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+            
+            {% if notif_revenue_today > 0 %}
+            <div class="alert alert-success alert-dismissible fade show container mt-2" role="alert">
+                <strong>Boas notícias:</strong> Você tem <strong>{{ notif_revenue_today }}</strong> receita(s) previstas para receber hoje!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+        {% endif %}
             <div class="container-fluid">
                 
                 {# Bloco de Mensagens Flash (Alertas) #}

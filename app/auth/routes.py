@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user, login_required
 from app.extensions import db
-from .forms import LoginForm, RegistrationForm, ChangePasswordForm, ChangeEmailForm
+from app.auth.models import User
+from .forms import LoginForm, RegistrationForm, ChangePasswordForm, ChangeEmailForm, ResetDataForm
+from app.financeiro.models import Wallet, RevenueCategory, ExpenseCategory, RevenueTransaction, Expense, Transfer
 from .models import User
 from config import Config
 from datetime import date, timedelta
@@ -21,14 +23,70 @@ def flash_form_errors(form):
 @login_required
 def profile():
     form_password = ChangePasswordForm()
-    # Preenche o campo email atual para exibir
     form_email = ChangeEmailForm(obj=current_user) 
+    form_reset = ResetDataForm()
     
     return render_template('auth/profile.html', 
                            form_password=form_password,
                            form_email=form_email,
+                           form_reset=form_reset,
                            title='Meu Perfil',
                            **footer)
+
+@auth_bp.route('/perfil/reset_data', methods=['POST'])
+@login_required
+def reset_account_data():
+    form = ResetDataForm()
+    
+    # Validação do formulário
+    if form.validate_on_submit():
+        # 1. Checagem de segurança (Senha)
+        if not current_user.check_password(form.password.data):
+            flash('Senha incorreta. Nenhuma alteração foi feita.', 'danger')
+            return redirect(url_for('auth.profile'))
+            
+        action = form.action_type.data
+        
+        try:
+            # BLOCO A: Apagar Lançamentos (Comum a todas as opções)
+            # Removemos transações financeiras primeiro
+            RevenueTransaction.query.filter_by(user_id=current_user.id).delete()
+            Expense.query.filter_by(user_id=current_user.id).delete()
+            Transfer.query.filter_by(user_id=current_user.id).delete()
+            
+            msg = 'Todos os lançamentos foram apagados com sucesso.'
+            
+            # BLOCO B: Reset Completo ou Exclusão (Apagar Estrutura)
+            if action in ['full_reset', 'delete_account']:
+                RevenueCategory.query.filter_by(user_id=current_user.id).delete()
+                ExpenseCategory.query.filter_by(user_id=current_user.id).delete()
+                Wallet.query.filter_by(user_id=current_user.id).delete()
+                msg = 'Sua conta foi totalmente resetada para o estado inicial.'
+            
+            # BLOCO C: Exclusão da Conta (Apagar Usuário)
+            if action == 'delete_account':
+                user_to_delete = User.query.get(current_user.id)
+                
+                if user_to_delete:
+                    db.session.delete(user_to_delete)
+                    db.session.commit()
+                    
+                    logout_user()
+                    
+                    flash('Sua conta e todos os seus dados foram excluídos permanentemente. Até logo.', 'info')
+                    return redirect(url_for('auth.login'))
+                
+            db.session.commit()
+            flash(msg, 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro crítico ao processar solicitação: {e}', 'danger')
+            
+    else:
+        flash('Por favor, confirme que está ciente e preencha a senha.', 'warning')
+            
+    return redirect(url_for('auth.profile'))
 
 @auth_bp.route('/perfil/change_password', methods=['POST'])
 @login_required

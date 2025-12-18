@@ -60,9 +60,7 @@
                         </div>
                     </div>
                     <div class="col-12 col-md-2 d-grid">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">
-                            Filtrar
-                        </button>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
                     </div>
                 </form>
                 {% if request.args %}
@@ -102,12 +100,31 @@
 <div class="tab-content" id="despesasTabsContent">
     
     <div class="tab-pane fade show active" id="pagas-content" role="tabpanel">
+        
+        <form action="{{ url_for('financeiro.bulk_action_expenses') }}" method="POST" id="bulkFormPaid"></form>
+
         <div class="card border-0 shadow-sm rounded-4">
             
+            <div class="card-header bg-light border-bottom-0 py-2" id="bulkActionsPaid" style="display:none;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-return-right text-muted"></i>
+                    <span class="small fw-bold text-muted">Ações em massa:</span>
+                    <select name="action_type" class="form-select form-select-sm w-auto" form="bulkFormPaid">
+                        <option value="delete">Excluir Selecionadas</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-dark" onclick="return confirm('ATENÇÃO: Confirmar ação em massa nos itens pagos?')" form="bulkFormPaid">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+
             <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small text-muted">
                         <tr>
+                            <th style="width: 40px;" class="text-center border-0">
+                                <input type="checkbox" class="form-check-input" onchange="toggleAllCheckboxes(this, 'bulkFormPaid', 'bulkActionsPaid')">
+                            </th>
                             <th class="text-center border-0">Pagamento</th>
                             <th class="border-0">Descrição</th>
                             <th class="border-0">Categoria</th>
@@ -119,33 +136,28 @@
                     <tbody>
                         {% for t in paid_expenses %}
                         <tr class="bg-white border-bottom">
+                            <td class="text-center py-2">
+                                <input type="checkbox" name="selected_ids" value="{{ t.id }}" class="form-check-input item-check" form="bulkFormPaid" onchange="toggleBulkMenu('bulkFormPaid', 'bulkActionsPaid')">
+                            </td>
                             <td class="ps-4 font-monospace py-2">
                                 {{ t.payment_date.strftime('%d/%m/%Y') if t.payment_date else 'N/A' }}
                             </td>
                             <td class="py-2"><span class="fw-bold text-dark">{{ t.description }}</span></td>
-                            <td class="py-2">
-                                <span class="fw-bold text-dark">{{ t.category.name }}</span>
-                            </td>
-                            <td class="py-2">
-                                <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
-                            </td>
-                            <td class="text-end fw-bold text-danger font-monospace py-2">
-                                - {{ t.amount | currency }}
-                            </td>
+                            <td class="py-2"><span class="fw-bold text-dark">{{ t.category.name }}</span></td>
+                            <td class="py-2"><span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span></td>
+                            <td class="text-end fw-bold text-danger font-monospace py-2">- {{ t.amount | currency }}</td>
                             <td class="text-center pe-4 py-2">
                                 <a href="{{ url_for('financeiro.edit_expense', expense_id=t.id) }}" class="btn btn-sm btn-link text-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i></button>
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma despesa paga encontrada.</td></tr>
+                        <tr><td colspan="7" class="text-center py-5 text-muted">Nenhuma despesa paga encontrada.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            
+
             <div class="d-md-none p-3"> 
                 {% for t in paid_expenses %}
                 <div class="card shadow-sm border-0 mb-3 border-start border-4 border-danger">
@@ -156,11 +168,8 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center small mb-2">
                             <span class="badge bg-light text-danger border fw-normal rounded-pill">{{ t.category.name }}</span>
-                            <span class="text-muted font-monospace">
-                                {{ t.payment_date.strftime('%d/%m/%Y') if t.payment_date else 'N/A' }}
-                            </span>
+                            <span class="text-muted font-monospace">{{ t.payment_date.strftime('%d/%m/%Y') if t.payment_date else 'N/A' }}</span>
                         </div>
-                        
                         <div class="d-flex justify-content-end gap-2 border-top pt-2 mt-2">
                             <a href="{{ url_for('financeiro.edit_expense', expense_id=t.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i> Editar</a>
                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i> Excluir</button>
@@ -187,17 +196,34 @@
     <div class="tab-pane fade" id="apagar-content" role="tabpanel">
         <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-3">
             <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-            <div>
-                <strong>Atenção:</strong> Estes lançamentos são previsões e não afetam o saldo de caixa até serem baixados.
-            </div>
+            <div><strong>Atenção:</strong> Estes lançamentos são previsões e não afetam o saldo de caixa até serem baixados.</div>
         </div>
+
+        <form action="{{ url_for('financeiro.bulk_action_expenses') }}" method="POST" id="bulkFormPending"></form>
 
         <div class="card border-0 shadow-sm rounded-4">
             
+            <div class="card-header bg-warning bg-opacity-10 border-bottom-0 py-2" id="bulkActionsPending" style="display:none;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-return-right text-muted"></i>
+                    <span class="small fw-bold text-muted">Ações em massa:</span>
+                    <select name="action_type" class="form-select form-select-sm w-auto" form="bulkFormPending">
+                        <option value="pay">Pagar Selecionadas</option>
+                        <option value="delete">Excluir Selecionadas</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('Confirmar ação em massa?')" form="bulkFormPending">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+
             <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small text-muted">
                         <tr>
+                            <th style="width: 40px;" class="text-center border-0">
+                                <input type="checkbox" class="form-check-input" onchange="toggleAllCheckboxes(this, 'bulkFormPending', 'bulkActionsPending')">
+                            </th>
                             <th class="text-center border-0">Vencimento</th>
                             <th class="border-0">Descrição</th>
                             <th class="border-0">Categoria</th>
@@ -208,12 +234,9 @@
                     </thead>
                     <tbody>
                         {% for t in pending_expenses %}
-                            {# Estilização de Linha #}
                             {% set dias_restantes = (t.due_date - now_date).days %}
-                            
                             {% set row_class = "bg-white" %}
                             {% set due_class = "text-warning" %}
-                            
                             {% if dias_restantes < 0 %}
                                 {% set row_class = "bg-white border-start border-4 border-danger" %}
                                 {% set due_class = "text-danger" %}
@@ -223,6 +246,9 @@
                             {% endif %}
 
                         <tr class="{{ row_class }} border-bottom-light">
+                            <td class="text-center py-2">
+                                <input type="checkbox" name="selected_ids" value="{{ t.id }}" class="form-check-input item-check" form="bulkFormPending" onchange="toggleBulkMenu('bulkFormPending', 'bulkActionsPending')">
+                            </td>
                             <td class="ps-4 py-2 font-monospace {{ due_class }}">
                                 {{ t.due_date.strftime('%d/%m/%Y') }}
                                 {% if dias_restantes < 0 %}
@@ -232,29 +258,19 @@
                                 {% endif %}
                             </td>
                             <td class="py-2"><span class="fw-bold text-dark">{{ t.description }}</span></td>
-                            <td class="py-2">
-                                <span class="fw-bold text-dark">{{ t.category.name }}</span>
-                            </td>
-                            <td class="py-2">
-                                <span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span>
-                            </td>
-                            <td class="text-end fw-bold text-secondary font-monospace py-2">
-                                - {{ t.amount | currency }}
-                            </td>
+                            <td class="py-2"><span class="fw-bold text-dark">{{ t.category.name }}</span></td>
+                            <td class="py-2"><span class="badge bg-light text-dark border fw-normal">{{ t.wallet.name }}</span></td>
+                            <td class="text-end fw-bold text-secondary font-monospace py-2">- {{ t.amount | currency }}</td>
                             <td class="text-center pe-4 py-2">
-                                <form action="{{ url_for('financeiro.pay_expense', expense_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar pagamento desta conta?');">
-                                    <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Pagar)">
-                                        <i class="bi bi-check-lg"></i> Pagar
-                                    </button>
+                                <form action="{{ url_for('financeiro.pay_expense', expense_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar pagamento?');">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Pagar)"><i class="bi bi-check-lg"></i> Pagar</button>
                                 </form>
                                 <a href="{{ url_for('financeiro.edit_expense', expense_id=t.id) }}" class="btn btn-sm btn-link text-secondary ms-1" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i></button>
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma conta pendente encontrada.</td></tr>
+                        <tr><td colspan="7" class="text-center py-5 text-muted">Nenhuma conta pendente encontrada.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -278,15 +294,12 @@
                                     {% if status_text %}<span class="badge bg-danger ms-1">{{ status_text }}</span>{% endif %}
                                 </span>
                             </div>
-                            
                             <div class="d-flex justify-content-end gap-2 border-top pt-2 mt-2">
-                                <form action="{{ url_for('financeiro.pay_expense', expense_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar pagamento desta conta?');">
-                                    <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Pagar)">
-                                        <i class="bi bi-check-lg"></i> Pagar
-                                    </button>
+                                <form action="{{ url_for('financeiro.pay_expense', expense_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar pagamento?');">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Pagar"><i class="bi bi-check-lg"></i> Pagar</button>
                                 </form>
-                                <a href="{{ url_for('financeiro.edit_expense', expense_id=t.id) }}" class="btn btn-sm btn-outline-secondary ms-1" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i></button>
+                                <a href="{{ url_for('financeiro.edit_expense', expense_id=t.id) }}" class="btn btn-sm btn-outline-secondary ms-1"><i class="bi bi-pencil"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteExpenseModal{{ t.id }}"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
                     </div>
@@ -297,6 +310,7 @@
         </div>
     </div>
 </div>
+
 {# Modals #}
 {% for t in paid_expenses + pending_expenses %}
 {{ confirm_modal(
@@ -313,15 +327,9 @@
 {{ super() }}
 <script>
 $(document).ready(function() {
-    const select2Config = {
-        theme: 'bootstrap-5',
-        width: '100%',
-        allowClear: true
-    };
-    
+    const select2Config = { theme: 'bootstrap-5', width: '100%', allowClear: true };
     $('#expense_item_filter_select2').select2({ ...select2Config, placeholder: "Categoria" });
     $('#expense_wallet_filter_select2').select2({ ...select2Config, placeholder: "Carteira" });
-    $('#recorrencia_filtro_select2').select2({ ...select2Config, placeholder: "Recorrência", minimumResultsForSearch: Infinity });
 
     function atualizarCardTotal(abaAtiva) {
         var cardTotal = $('#card-total');
@@ -338,29 +346,31 @@ $(document).ready(function() {
             labelTotal.text('TOTAL A PAGAR');
         }
     }
-    
-    function atualizarLinkPDF(abaAtiva) {
-        var status = (abaAtiva === 'pagas-tab') ? 'pagas' : 'pendentes';
-        var urlParams = new URLSearchParams(window.location.search);
-        urlParams.set('status_relatorio', status);
-        
-        var novaUrl = "{{ url_for('financeiro.expenses') }}" + "?" + urlParams.toString();
-        $('#btn-relatorio-pdf').attr('href', novaUrl);
-    }
 
     var activeTab = document.querySelector('#despesasTabs button.active');
-    if (activeTab) {
-        atualizarCardTotal(activeTab.id);
-        atualizarLinkPDF(activeTab.id);
-    }
+    if (activeTab) atualizarCardTotal(activeTab.id);
 
     var triggerTabList = [].slice.call(document.querySelectorAll('#despesasTabs button'))
     triggerTabList.forEach(function (triggerEl) {
         triggerEl.addEventListener('shown.bs.tab', function (event) {
             atualizarCardTotal(event.target.id);
-            atualizarLinkPDF(event.target.id);
         })
     });
 });
+
+function toggleAllCheckboxes(source, formId, menuId) {
+    const form = document.getElementById(formId);
+    // Seleciona checkboxes vinculados ao form específico
+    const checkboxes = document.querySelectorAll(`.item-check[form="${formId}"]`);
+    checkboxes.forEach(cb => cb.checked = source.checked);
+    toggleBulkMenu(formId, menuId);
+}
+
+function toggleBulkMenu(formId, menuId) {
+    // Conta os marcados vinculados ao form específico
+    const checkedCount = document.querySelectorAll(`.item-check[form="${formId}"]:checked`).length;
+    const menu = document.getElementById(menuId);
+    if(menu) menu.style.display = checkedCount > 0 ? 'block' : 'none';
+}
 </script>
 {% endblock %}

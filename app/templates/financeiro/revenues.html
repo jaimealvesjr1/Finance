@@ -56,9 +56,7 @@
                         </div>
                     </div>
                     <div class="col-12 col-md-2 d-grid">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">
-                            Filtrar
-                        </button>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
                     </div>
                 </form>
                 {% if request.args %}
@@ -98,11 +96,31 @@
 <div class="tab-content" id="revenuesTabsContent">
     
     <div class="tab-pane fade show active" id="received-content" role="tabpanel">
+        
+        <form action="{{ url_for('financeiro.bulk_action_revenues') }}" method="POST" id="bulkFormReceived"></form>
+
         <div class="card border-0 shadow-sm rounded-4">
+            
+            <div class="card-header bg-light border-bottom-0 py-2" id="bulkActionsReceived" style="display:none;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-return-right text-muted"></i>
+                    <span class="small fw-bold text-muted">Ações em massa:</span>
+                    <select name="action_type" class="form-select form-select-sm w-auto" form="bulkFormReceived">
+                        <option value="delete">Excluir Selecionadas</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-dark" onclick="return confirm('ATENÇÃO: Confirmar exclusão das receitas selecionadas?')" form="bulkFormReceived">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+
             <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small text-muted">
                         <tr>
+                            <th style="width: 40px;" class="text-center border-0">
+                                <input type="checkbox" class="form-check-input" onchange="toggleAllCheckboxes(this, 'bulkFormReceived', 'bulkActionsReceived')">
+                            </th>
                             <th class="text-center border-0" style="width: 12%;">Recebimento</th>
                             <th class="text-center border-0" style="width: 30%;">Descrição</th>
                             <th class="border-0" style="width: 15%;">Carteira</th>
@@ -114,6 +132,9 @@
                     <tbody>
                         {% for t in received_revenues %}
                         <tr class="bg-white border-bottom-light">
+                            <td class="text-center py-2">
+                                <input type="checkbox" name="selected_ids" value="{{ t.id }}" class="form-check-input item-check" form="bulkFormReceived" onchange="toggleBulkMenu('bulkFormReceived', 'bulkActionsReceived')">
+                            </td>
                             <td class="ps-4 py-3 text-muted font-monospace">
                                 {{ t.receipt_date.strftime('%d/%m/%Y') if t.receipt_date else 'N/A' }}
                             </td>
@@ -127,11 +148,12 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma receita recebida encontrada.</td></tr>
+                        <tr><td colspan="7" class="text-center py-5 text-muted">Nenhuma receita recebida encontrada.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
             <div class="d-md-none p-3"> 
                 {% for t in received_revenues %}
                 <div class="card shadow-sm border-0 mb-3 border-start border-4 border-success">
@@ -142,11 +164,8 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center small mb-2">
                             <span class="badge bg-light text-success border fw-normal rounded-pill">{{ t.category.name }} ({{ t.wallet.name }})</span>
-                            <span class="text-muted font-monospace">
-                                {{ t.receipt_date.strftime('%d/%m/%Y') if t.receipt_date else 'N/A' }}
-                            </span>
+                            <span class="text-muted font-monospace">{{ t.receipt_date.strftime('%d/%m/%Y') if t.receipt_date else 'N/A' }}</span>
                         </div>
-                        
                         <div class="d-flex justify-content-end gap-2 border-top pt-2 mt-2">
                             <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i> Editar</a>
                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i> Excluir</button>
@@ -158,6 +177,7 @@
                 {% endfor %}
             </div>
         </div>
+        
         {% set filter_params = { 
             'desc_filter': desc_filter,
             'category_filter': cat_filter_id,
@@ -171,16 +191,34 @@
     <div class="tab-pane fade" id="receivable-content" role="tabpanel">
         <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-3">
             <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-            <div>
-                <strong>Atenção:</strong> Estes lançamentos são previsões e não afetam o saldo de caixa até serem baixados.
-            </div>
+            <div><strong>Atenção:</strong> Estes lançamentos são previsões e não afetam o saldo de caixa até serem baixados.</div>
         </div>
 
+        <form action="{{ url_for('financeiro.bulk_action_revenues') }}" method="POST" id="bulkFormReceivable"></form>
+
         <div class="card border-0 shadow-sm rounded-4">
+            
+            <div class="card-header bg-warning bg-opacity-10 border-bottom-0 py-2" id="bulkActionsReceivable" style="display:none;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-return-right text-muted"></i>
+                    <span class="small fw-bold text-muted">Ações em massa:</span>
+                    <select name="action_type" class="form-select form-select-sm w-auto" form="bulkFormReceivable">
+                        <option value="receive">Receber Selecionadas</option>
+                        <option value="delete">Excluir Selecionadas</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('Confirmar ação em massa?')" form="bulkFormReceivable">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+
             <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small text-muted">
                         <tr>
+                            <th style="width: 40px;" class="text-center border-0">
+                                <input type="checkbox" class="form-check-input" onchange="toggleAllCheckboxes(this, 'bulkFormReceivable', 'bulkActionsReceivable')">
+                            </th>
                             <th class="text-center border-0" style="width: 12%;">Vencimento</th>
                             <th class="border-0">Descrição</th>
                             <th class="border-0" style="width: 15%;">Carteira</th>
@@ -192,10 +230,8 @@
                     <tbody>
                         {% for t in receivable_revenues %}
                             {% set dias_restantes = (t.due_date - now_date).days %}
-                            
                             {% set row_class = "bg-white" %}
                             {% set due_class = "text-warning" %}
-                            
                             {% if dias_restantes < 0 %}
                                 {% set row_class = "bg-white border-start border-4 border-danger" %}
                                 {% set due_class = "text-danger" %}
@@ -205,6 +241,9 @@
                             {% endif %}
 
                         <tr class="{{ row_class }} border-bottom-light">
+                            <td class="text-center py-2">
+                                <input type="checkbox" name="selected_ids" value="{{ t.id }}" class="form-check-input item-check" form="bulkFormReceivable" onchange="toggleBulkMenu('bulkFormReceivable', 'bulkActionsReceivable')">
+                            </td>
                             <td class="ps-4 py-2 font-monospace {{ due_class }}">
                                 {{ t.due_date.strftime('%d/%m/%Y') }}
                                 {% if dias_restantes < 0 %}
@@ -219,16 +258,14 @@
                             <td class="text-end fw-bold text-secondary font-monospace py-2">+ {{ t.amount | currency }}</td>
                             <td class="text-center pe-4 py-2">
                                 <form action="{{ url_for('financeiro.mark_as_received', revenue_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar recebimento desta receita?');">
-                                    <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Receber)">
-                                        <i class="bi bi-check-lg"></i> Receber
-                                    </button>
+                                    <button type="submit" class="btn btn-sm btn-success" title="Receber"><i class="bi bi-check-lg"></i> Receber</button>
                                 </form>
-                                <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-link text-secondary ms-1" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i></button>
+                                <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-link text-secondary ms-1"><i class="bi bi-pencil"></i></a>
+                                <button type="button" class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}"><i class="bi bi-trash"></i></button>
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="6" class="text-center py-5 text-muted">Nenhuma receita pendente encontrada.</td></tr>
+                        <tr><td colspan="7" class="text-center py-5 text-muted">Nenhuma receita pendente encontrada.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -236,7 +273,7 @@
 
             <div class="d-md-none p-3">
                 {% for t in receivable_revenues %}
-                    {% set dias_restantes = (t.due_date - now_date).days %}
+                     {% set dias_restantes = (t.due_date - now_date).days %}
                     {% set status_text = "Atrasado" if dias_restantes < 0 else ("Vence Hoje!" if dias_restantes == 0 else "") %}
                     {% set border_class = "border-danger" if dias_restantes < 0 else "border-warning" %}
                     
@@ -252,15 +289,12 @@
                                     {% if status_text %}<span class="badge bg-danger ms-1">{{ status_text }}</span>{% endif %}
                                 </span>
                             </div>
-                            
                             <div class="d-flex justify-content-end gap-2 border-top pt-2 mt-2">
-                                <form action="{{ url_for('financeiro.mark_as_received', revenue_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar recebimento desta receita?');">
-                                    <button type="submit" class="btn btn-sm btn-success" title="Dar Baixa (Receber)">
-                                        <i class="bi bi-check-lg"></i> Receber
-                                    </button>
+                                <form action="{{ url_for('financeiro.mark_as_received', revenue_id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmar recebimento?');">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Receber"><i class="bi bi-check-lg"></i> Receber</button>
                                 </form>
-                                <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-outline-secondary ms-1" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}" title="Excluir"><i class="bi bi-trash"></i></button>
+                                <a href="{{ url_for('financeiro.edit_revenue', revenue_id=t.id) }}" class="btn btn-sm btn-outline-secondary ms-1"><i class="bi bi-pencil"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteRevenueModal{{ t.id }}"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
                     </div>
@@ -272,7 +306,7 @@
     </div>
 </div>
 
-{# Modals (recebidas + a receber) #}
+{# Modals #}
 {% for t in received_revenues + receivable_revenues %}
 {{ confirm_modal(
     id='confirmDeleteRevenueModal' ~ t.id,
@@ -288,16 +322,10 @@
 {{ super() }}
 <script>
 $(document).ready(function() {
-    const select2Config = {
-        theme: 'bootstrap-5',
-        width: '100%',
-        allowClear: true
-    };
-    
+    const select2Config = { theme: 'bootstrap-5', width: '100%', allowClear: true };
     $('#revenue_category_filter_select2').select2({ ...select2Config, placeholder: "Selecione a Categoria" });
     $('#revenue_wallet_filter_select2').select2({ ...select2Config, placeholder: "Carteira" });
     
-    // Lógica para alternar o card de total
     function atualizarCardTotal(abaAtiva) {
         var cardTotal = $('#card-total');
         var valorTotal = $('#valor-total');
@@ -314,11 +342,8 @@ $(document).ready(function() {
         }
     }
 
-    // Inicializa a tab e o card
     var activeTab = document.querySelector('#revenuesTabs button.active');
-    if (activeTab) {
-        atualizarCardTotal(activeTab.id);
-    }
+    if (activeTab) atualizarCardTotal(activeTab.id);
 
     var triggerTabList = [].slice.call(document.querySelectorAll('#revenuesTabs button'))
     triggerTabList.forEach(function (triggerEl) {
@@ -327,5 +352,20 @@ $(document).ready(function() {
         })
     });
 });
+
+function toggleAllCheckboxes(source, formId, menuId) {
+    const form = document.getElementById(formId);
+    // Seleciona checkboxes que tenham o atributo form="formId" e classe item-check
+    const checkboxes = document.querySelectorAll(`.item-check[form="${formId}"]`);
+    checkboxes.forEach(cb => cb.checked = source.checked);
+    toggleBulkMenu(formId, menuId);
+}
+
+function toggleBulkMenu(formId, menuId) {
+    // Conta quantos checkboxes com esse formId estão marcados
+    const checkedCount = document.querySelectorAll(`.item-check[form="${formId}"]:checked`).length;
+    const menu = document.getElementById(menuId);
+    if(menu) menu.style.display = checkedCount > 0 ? 'block' : 'none';
+}
 </script>
 {% endblock %}

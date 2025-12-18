@@ -446,10 +446,7 @@ def add_revenue():
         
     if form.validate_on_submit():
         
-        try:
-            num_repetitions = int(form.num_repetitions.data)
-        except ValueError:
-            num_repetitions = 0
+        num_repetitions = form.num_repetitions.data if form.num_repetitions.data else 0
             
         is_recurrent_flag = form.is_recurrent.data and num_repetitions == 0
         frequency = form.frequency.data
@@ -730,10 +727,7 @@ def add_expense():
     if form.validate_on_submit():
         is_paid = (form.status.data == 'paid')
         
-        try:
-            num_repetitions = int(form.num_repetitions.data)
-        except ValueError:
-            num_repetitions = 0
+        num_repetitions = form.num_repetitions.data if form.num_repetitions.data else 0
             
         frequency = form.frequency.data
         
@@ -897,4 +891,85 @@ def pay_expense(expense_id):
         db.session.rollback()
         flash(f'Erro ao dar baixa na despesa: {e}', 'danger')
 
+    return redirect(url_for('financeiro.expenses'))
+
+@financeiro_bp.route('/receitas/bulk', methods=['POST'])
+@login_required
+def bulk_action_revenues():
+    action = request.form.get('action_type')
+    ids = request.form.getlist('selected_ids')
+    
+    if not ids:
+        flash('Nenhum item selecionado.', 'warning')
+        return redirect(url_for('financeiro.revenues'))
+    
+    # Filtra transações pelos IDs enviados E garante que pertencem ao usuário atual (segurança)
+    revenues = RevenueTransaction.query.filter(
+        RevenueTransaction.id.in_(ids), 
+        RevenueTransaction.user_id == current_user.id
+    ).all()
+    
+    count = 0
+    try:
+        if action == 'delete':
+            count = len(revenues)
+            for rev in revenues:
+                db.session.delete(rev)
+            flash(f'{count} receitas excluídas com sucesso.', 'success')
+            
+        elif action == 'receive':
+            for rev in revenues:
+                if not rev.is_received:
+                    rev.is_received = True
+                    # Define a data de recebimento como agora, se não houver
+                    if not rev.receipt_date:
+                        rev.receipt_date = datetime.utcnow()
+                    count += 1
+            flash(f'{count} receitas marcadas como recebidas.', 'success')
+            
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro na ação em massa: {e}', 'danger')
+        
+    return redirect(url_for('financeiro.revenues'))
+
+@financeiro_bp.route('/despesas/bulk', methods=['POST'])
+@login_required
+def bulk_action_expenses():
+    action = request.form.get('action_type')
+    ids = request.form.getlist('selected_ids')
+    
+    if not ids:
+        flash('Nenhum item selecionado.', 'warning')
+        return redirect(url_for('financeiro.expenses'))
+    
+    expenses = Expense.query.filter(
+        Expense.id.in_(ids), 
+        Expense.user_id == current_user.id
+    ).all()
+    
+    count = 0
+    try:
+        if action == 'delete':
+            count = len(expenses)
+            for exp in expenses:
+                db.session.delete(exp)
+            flash(f'{count} despesas excluídas com sucesso.', 'success')
+            
+        elif action == 'pay':
+            for exp in expenses:
+                if not exp.is_paid:
+                    exp.is_paid = True
+                    # Define data de pagamento como agora, se não houver
+                    if not exp.payment_date:
+                        exp.payment_date = datetime.utcnow()
+                    count += 1
+            flash(f'{count} despesas marcadas como pagas.', 'success')
+            
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro na ação em massa: {e}', 'danger')
+        
     return redirect(url_for('financeiro.expenses'))
