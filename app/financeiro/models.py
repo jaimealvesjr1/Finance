@@ -18,22 +18,29 @@ class Wallet(db.Model):
 
     @property
     def current_balance(self):
+        # Somas existentes
         total_receipts = db.session.scalar(
-            db.select(func.coalesce(func.sum(RevenueTransaction.amount), Decimal(0))).where(
-                RevenueTransaction.wallet_id == self.id,
-                RevenueTransaction.is_received == True
-            ))
+            db.select(func.coalesce(func.sum(RevenueTransaction.amount), Decimal(0)))
+            .where(RevenueTransaction.wallet_id == self.id, RevenueTransaction.is_received == True)
+        ) or Decimal(0)
         
         total_paid_expenses = db.session.scalar(
-            db.select(func.coalesce(func.sum(Expense.amount), Decimal(0))).where( 
-                Expense.wallet_id == self.id,
-                Expense.is_paid == True
-            ))
-        
-        receipts = total_receipts if total_receipts is not None else Decimal(0)
-        paid_expenses = total_paid_expenses if total_paid_expenses is not None else Decimal(0)
+            db.select(func.coalesce(func.sum(Expense.amount), Decimal(0)))
+            .where(Expense.wallet_id == self.id, Expense.is_paid == True)
+        ) or Decimal(0)
 
-        return self.initial_balance + receipts - paid_expenses
+        # ADICIONE: Impacto das transferências
+        outcoming_transfers = db.session.scalar(
+            db.select(func.coalesce(func.sum(Transfer.amount), Decimal(0)))
+            .where(Transfer.source_wallet_id == self.id)
+        ) or Decimal(0)
+
+        incoming_transfers = db.session.scalar(
+            db.select(func.coalesce(func.sum(Transfer.amount), Decimal(0)))
+            .where(Transfer.target_wallet_id == self.id)
+        ) or Decimal(0)
+
+        return self.initial_balance + total_receipts - total_paid_expenses - outcoming_transfers + incoming_transfers
     
 
 class RevenueCategory(db.Model):
@@ -124,3 +131,17 @@ class Transfer(db.Model):
 
     def __repr__(self):
         return f'<Transfer R${self.amount} from {self.source_wallet.name} to {self.target_wallet.name}>'
+
+class AuditLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(50), nullable=False)  # 'CREATE', 'UPDATE', 'DELETE'
+    target_type = db.Column(db.String(50), nullable=False) # 'REVENUE', 'EXPENSE', 'TRANSFER'
+    target_id = db.Column(db.Integer)
+    details = db.Column(db.Text) # JSON ou string com valores alterados
+
+    user = db.relationship('User', backref='audit_logs')
+
+    def __repr__(self):
+        return f'<AuditLog {self.action} on {self.target_type} by User {self.user_id}>'

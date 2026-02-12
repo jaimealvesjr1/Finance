@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from .models import Wallet, RevenueCategory, RevenueTransaction, ExpenseCategory, Expense, Transfer
 from .forms import WalletForm, RevenueCategoryForm, RevenueTransactionForm, ExpenseCategoryForm, ExpenseForm, TransferForm
+from .services import FinanceService
 from config import Config
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_, or_, extract
@@ -61,16 +62,13 @@ def transfer():
         target_wallet = form.target_wallet.data
         
         try:
-            source_wallet.initial_balance -= amount
-            target_wallet.initial_balance += amount
-            
-            transfer = Transfer(
+            new_transfer = Transfer(
                 amount=amount,
                 source_wallet_id=source_wallet.id,
                 target_wallet_id=target_wallet.id,
                 user_id=current_user.id
             )
-            db.session.add(transfer)
+            db.session.add(new_transfer)
 
             db.session.commit()
             flash(f'Transferência de {source_wallet.name} para {target_wallet.name} realizada com sucesso!', 'success')
@@ -92,17 +90,13 @@ def undo_transfer(transfer_id):
         abort(403)
         
     try:
-        amount = transfer.amount
-        source_wallet = transfer.source_wallet
-        target_wallet = transfer.target_wallet
-        
-        target_wallet.initial_balance -= amount
-        source_wallet.initial_balance += amount
+        details = f"Valor: {transfer.amount} | De: {transfer.source_wallet.name} | Para: {transfer.target_wallet.name}"
+        FinanceService.log_action(current_user.id, 'DELETE', transfer, details)
         
         db.session.delete(transfer)
         db.session.commit()
         
-        flash(f'Transferência de R${amount:.2f} (de {source_wallet.name} para {target_wallet.name}) desfeita com sucesso!', 'info')
+        flash(f'Transferência desfeita com sucesso! Ação registada no log.', 'info')
         
     except Exception as e:
         db.session.rollback()
@@ -177,20 +171,24 @@ def manage_initial_balance(wallet_id):
 @financeiro_bp.route('carteiras/delete/<int:wallet_id>', methods=['POST'])
 @login_required
 def delete_wallet(wallet_id):
-    """Exclui uma carteira, mas apenas se não houver receitas OU despesas ligadas a ela."""
     wallet = db.get_or_404(Wallet, wallet_id)
-    
     if wallet.user_id != current_user.id:
         abort(403)
         
-    # ATUALIZAÇÃO CRÍTICA: Checar RevenueTransaction e Expense
     if wallet.transactions.count() > 0 or wallet.expenses.count() > 0:
-        flash('Não é possível excluir a carteira, pois há transações (receitas ou despesas) ligadas a ela.', 'danger')
+        flash('Não é possível excluir a carteira com transações ligadas a ela.', 'danger')
         return redirect(url_for('financeiro.wallets'))
     
-    db.session.delete(wallet)
-    db.session.commit()
-    flash('Carteira excluída com sucesso!', 'info')
+    try:
+        details = f"Nome: {wallet.name} | Saldo Inicial: {wallet.initial_balance}"
+        FinanceService.log_action(current_user.id, 'DELETE', wallet, details)
+        
+        db.session.delete(wallet)
+        db.session.commit()
+        flash('Carteira excluída com sucesso!', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir: {e}', 'danger')
 
     return redirect(url_for('financeiro.wallets'))
 
@@ -248,17 +246,22 @@ def manage_revenue_category(category_id):
 @login_required
 def delete_revenue_category(category_id):
     category = db.get_or_404(RevenueCategory, category_id)
-
     if category.user_id != current_user.id:
         abort(403)
         
     if category.transactions.count() > 0:
-        flash('Não é possivel excluir a categoria de Receita, pois há transações ligadas a ela.', 'danger')
+        flash('Não é possível excluir a categoria com transações ligadas a ela.', 'danger')
         return redirect(url_for('financeiro.revenue_categories'))
     
-    db.session.delete(category)
-    db.session.commit()
-    flash('Categoria de Receita excluída com sucesso!', 'info')
+    try:
+        FinanceService.log_action(current_user.id, 'DELETE', category, f"Nome: {category.name}")
+        
+        db.session.delete(category)
+        db.session.commit()
+        flash('Categoria de Receita excluída com sucesso!', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir: {e}', 'danger')
 
     return redirect(url_for('financeiro.categories_config'))
     
@@ -325,13 +328,21 @@ def delete_expense_category(category_id):
     category = db.get_or_404(ExpenseCategory, category_id)
     if category.user_id != current_user.id:
         abort(403)
+        
     if category.expenses.count() > 0:
-        flash('Não é possível excluir a categoria, pois há despesas ligadas a ela.', 'danger')
+        flash('Não é possível excluir a categoria com despesas ligadas a ela.', 'danger')
         return redirect(url_for('financeiro.categories_config'))
         
-    db.session.delete(category)
-    db.session.commit()
-    flash('Categoria de Despesa excluída com sucesso!', 'info')
+    try:
+        FinanceService.log_action(current_user.id, 'DELETE', category, f"Nome: {category.name}")
+        
+        db.session.delete(category)
+        db.session.commit()
+        flash('Categoria de Despesa excluída com sucesso!', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir: {e}', 'danger')
+        
     return redirect(url_for('financeiro.categories_config'))
 
 @financeiro_bp.route('/transacoes')
@@ -445,81 +456,15 @@ def add_revenue():
         return redirect(url_for('financeiro.revenue_categories'))
         
     if form.validate_on_submit():
-        
-        num_repetitions = form.num_repetitions.data if form.num_repetitions.data else 0
-            
-        is_recurrent_flag = form.is_recurrent.data and num_repetitions == 0
-        frequency = form.frequency.data
-        frequency_for_template = form.frequency.data if is_recurrent_flag else None
-        
-        if num_repetitions > 0:
-            is_received = False
-            receipt_date = None
-        else:
-            is_received = (form.status.data == 'received')
-            receipt_date = datetime.combine(form.receipt_date.data, datetime.min.time()) if is_received and form.receipt_date.data else None
-            
-        revenue = RevenueTransaction(
-            description=form.description.data,
-            amount=form.amount.data,
-            date=form.date.data,
-            due_date=form.due_date.data,
-            is_received=is_received,
-            receipt_date=receipt_date,
-            
-            is_recurrent=is_recurrent_flag,
-            frequency=frequency_for_template,
-            
-            type='R',
-            user_id=current_user.id,
-            wallet_id=form.wallet.data.id,
-            category_id=form.category.data.id
-        )
-        db.session.add(revenue)
-
-        if num_repetitions > 0:
-            if not frequency or frequency == '':
-                 flash('A frequência é obrigatória para repetições em massa.', 'danger')
-                 db.session.rollback()
-                 return redirect(url_for('financeiro.add_revenue'))
-                 
-            current_due_date = form.due_date.data
-            for _ in range(num_repetitions):
-                current_due_date = calculate_next_date(current_due_date, frequency)
-                
-                new_revenue = RevenueTransaction(
-                    description=form.description.data,
-                    amount=form.amount.data,
-                    date=form.date.data, 
-                    due_date=current_due_date,
-                    is_received=False, 
-                    receipt_date=None, 
-                    
-                    is_recurrent=False, 
-                    frequency=None,
-                    
-                    type='R',
-                    user_id=current_user.id,
-                    wallet_id=form.wallet.data.id,
-                    category_id=form.category.data.id
-                )
-                db.session.add(new_revenue)
-            
-            db.session.commit()
-            total_lancamentos = num_repetitions + 1
-            msg = f'Receita registrada e mais {num_repetitions} lançamentos futuros criados (Total: {total_lancamentos}).'
-            flash(msg, 'success')
+        try:
+            # O Service agora cuida de toda a lógica de decisão
+            FinanceService.create_revenue_bulk(form, current_user.id)
+            flash('Receita registrada com sucesso!', 'success')
             return redirect(url_for('financeiro.revenues'))
-        
-        db.session.commit()
-        
-        if is_recurrent_flag:
-            msg = 'Receita registrada como template de recorrência contínua (agendada) com sucesso! Ela será repetida automaticamente.'
-        else:
-            msg = 'Receita registrada como RECEBIDA com sucesso!' if is_received else 'Receita registrada como A RECEBER com sucesso!'
-            
-        flash(msg, 'success')
-        return redirect(url_for('financeiro.revenues'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro técnico ao salvar: {str(e)}', 'danger')
+            return redirect(url_for('financeiro.add_revenue'))
     
     if request.method == 'GET':
         if not form.status.data:
@@ -582,13 +527,18 @@ def edit_revenue(revenue_id):
 def delete_revenue(revenue_id):
     revenue = db.get_or_404(RevenueTransaction, revenue_id)
     if revenue.user_id != current_user.id: abort(403)
+    
     try:
+        details = f"Desc: {revenue.description} | Valor: {revenue.amount} | Data: {revenue.date}"
+        FinanceService.log_action(current_user.id, 'DELETE', revenue, details)
+
         db.session.delete(revenue)
         db.session.commit()
-        flash('Receita excluída com sucesso!', 'info')
+        flash('Receita excluída e ação registrada no log.', 'info')
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao excluir a Receita: {e}', 'danger')
+        flash(f'Erro ao excluir: {e}', 'danger')
+        
     return redirect(url_for('financeiro.revenues'))
 
 @financeiro_bp.route('/receitas/receive/<int:revenue_id>', methods=['POST'])
@@ -718,92 +668,26 @@ def add_expense():
     form = ExpenseForm()
     
     if not current_user.wallets.first():
-        flash('Você precisa adicionar pelo menos uma Carteira antes de registrar uma Despesa!', 'warning')
+        flash('Adicione uma Carteira antes de registrar uma Despesa!', 'warning')
         return redirect(url_for('financeiro.wallets'))
     if not ExpenseCategory.query.filter_by(user_id=current_user.id).first():
-        flash('Você precisa configurar Categorias de Despesa antes de registrar uma Despesa!', 'warning')
+        flash('Configure Categorias de Despesa primeiro!', 'warning')
         return redirect(url_for('financeiro.expense_config'))
         
     if form.validate_on_submit():
-        is_paid = (form.status.data == 'paid')
-        
-        num_repetitions = form.num_repetitions.data if form.num_repetitions.data else 0
-            
-        frequency = form.frequency.data
-        
-        is_recurrent_flag = form.is_recurrent.data and num_repetitions == 0 
-        frequency_for_template = form.frequency.data if is_recurrent_flag else None
-
-        expense = Expense(
-            description=form.description.data,
-            amount=form.amount.data,
-            date=form.date.data,
-            due_date=form.due_date.data,
-            is_paid=is_paid,
-            payment_date=datetime.combine(form.payment_date.data, datetime.min.time()) if is_paid and form.payment_date.data else None,
-            
-            is_recurrent=is_recurrent_flag,
-            frequency=frequency_for_template,
-            
-            user_id=current_user.id,
-            wallet_id=form.wallet.data.id,
-            category_id=form.item.data.id
-        )
-        
-        db.session.add(expense)
-
-        if num_repetitions > 0:
-            if not frequency or frequency == '':
-                 flash('A frequência é obrigatória para repetições em massa.', 'danger')
-                 db.session.rollback()
-                 return redirect(url_for('financeiro.add_expense'))
-                 
-            current_due_date = form.due_date.data
-            for _ in range(num_repetitions):
-                current_due_date = calculate_next_date(current_due_date, frequency)
-                
-                new_expense = Expense(
-                    description=form.description.data,
-                    amount=form.amount.data,
-                    date=form.date.data,
-                    due_date=current_due_date,
-                    is_paid=False, 
-                    payment_date=None, 
-                    
-                    is_recurrent=False,
-                    frequency=None,
-                    
-                    user_id=current_user.id,
-                    wallet_id=form.wallet.data.id,
-                    category_id=form.item.data.id
-                )
-                db.session.add(new_expense)
-            
-            db.session.commit()
-            total_lancamentos = num_repetitions + 1
-            msg = f'Despesa registrada e mais {num_repetitions} lançamentos futuros criados (Total: {total_lancamentos}).'
-            flash(msg, 'success')
+        try:
+            FinanceService.create_expense_bulk(form, current_user.id)
+            flash('Despesa registrada com sucesso!', 'success')
             return redirect(url_for('financeiro.expenses'))
-            
-        # 3. Lançamento único ou recorrente contínuo (se num_repetitions == 0)
-        db.session.commit()
-        
-        if is_recurrent_flag:
-            msg = 'Despesa registrada como template de recorrência contínua (agendada) com sucesso! Ela será repetida automaticamente.'
-        else:
-            msg = 'Despesa registrada como PAGA com sucesso!' if is_paid else 'Despesa registrada como PENDENTE com sucesso!'
-            
-        flash(msg, 'success')
-        return redirect(url_for('financeiro.expenses'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro técnico: {str(e)}', 'danger')
+            return redirect(url_for('financeiro.add_expense'))
     
     if request.method == 'GET' and not form.status.data:
         form.status.data = 'pending'
 
-    return render_template('financeiro/expense_form.html',
-                           form=form, 
-                           title='Nova Despesa',
-                           is_edit=False,
-                           expense_id=None, **footer)
+    return render_template('financeiro/expense_form.html', form=form, title='Nova Despesa', is_edit=False, **footer)
 
 @financeiro_bp.route('/despesas/edit/<int:expense_id>', methods=['GET', 'POST'])
 @login_required
@@ -859,9 +743,12 @@ def delete_expense(expense_id):
         abort(403)
         
     try:
+        details = f"Desc: {expense.description} | Valor: {expense.amount} | Vencimento: {expense.due_date}"
+        FinanceService.log_action(current_user.id, 'DELETE', expense, details)
+
         db.session.delete(expense)
         db.session.commit()
-        flash('Despesa excluída com sucesso!', 'info')
+        flash('Despesa excluída e a ação foi registada no log de auditoria.', 'info')
     
     except Exception as e:
         db.session.rollback()
