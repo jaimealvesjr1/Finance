@@ -2,11 +2,12 @@
    1. VARIÁVEIS GLOBAIS (Paleta SaaS Moderno)
    ========================================= */
 :root {
-  --cor-primaria: #4f46e5;       /* Indigo 600 - Ação principal */
-  --cor-primaria-hover: #4338ca; /* Indigo 700 */
+  --cor-primaria: #3a86ff;       /* Indigo 600 - Ação principal */
+  --cor-primaria-hover: #0e46a0; /* Indigo 700 */
   --cor-secundaria: #10b981;     /* Emerald 500 - Sucesso/Dinheiro */
   --cor-perigo: #ef4444;         /* Red 500 - Despesas/Erro */
-  --cor-aviso: #f59e0b;          /* Amber 500 - Alertas */
+  --cor-aviso: #f59e0b;     
+  --cor-ascentia: #06d6a0;       /* Amber 500 - Alertas */
 
   /* Cores de Fundo e Texto */
   --cor-fundo-body: #f3f4f6;     /* Cinza muito claro (Cool Gray) */
